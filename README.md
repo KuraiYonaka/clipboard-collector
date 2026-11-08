@@ -8,7 +8,7 @@
 
 ## 시작하기
 
-1. [Releases](../../releases)에서 `NotepadPP_ClipboardCollector_v0.2.0.zip`을 내려받아 압축을 풉니다.
+1. [Releases](../../releases)에서 `Clipboard_Collector_v0.2.0.zip`을 내려받아 압축을 풉니다.
 2. Windows x64에 Python 3.9 이상 64비트가 설치되어 있어야 합니다. Excel, Word, 한글을 쓰려면 먼저 `Office_HWP_설치.cmd`를 한 번 실행합니다.
 3. 대상 문서나 탭을 열어 두고 `실행.cmd`로 프로그램을 실행합니다.
 4. 프로그램 창에서 대상을 선택하고 F8을 눌러 켭니다. 브라우저에서 Ctrl+C나 웹페이지의 복사 버튼으로 텍스트를 복사합니다.
@@ -24,7 +24,7 @@
 
 브라우저가 전면에 있을 때만 수집합니다. 지원 브라우저는 Chrome, Edge, Firefox, Brave, Vivaldi, Opera입니다. Excel에서는 기존 데이터가 있는 셀에 도달하면 수집을 멈춥니다. 한글은 COM 자동화가 가능한 설치 환경이 필요합니다. F8이 다른 프로그램과 겹치면 화면의 버튼을 사용하세요.
 
-v0.2.0의 메모장, Excel, Word, 한글 모드는 Windows 실기 검증 전입니다. 먼저 테스트 문서에서 확인해 주세요. 수집 내용은 편집기에 추가되며 저장은 대상 앱에서 직접 합니다.
+Windows 11에서 Notepad++ 수집 동작을 확인했습니다. Windows 메모장, Excel, Word, 한컴오피스 한글(HWP)은 아직 실기 검증하지 않았습니다. 먼저 테스트 문서에서 확인해 주세요. 수집 내용은 대상 앱에서 직접 저장합니다.
 
 ## EXE 직접 빌드
 

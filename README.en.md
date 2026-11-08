@@ -8,7 +8,7 @@ This program was developed on Windows 11. Operation on Linux, macOS, or other en
 
 ## Getting started
 
-1. Download `NotepadPP_ClipboardCollector_v0.2.0.zip` from [Releases](../../releases) and extract it.
+1. Download `Clipboard_Collector_v0.2.0.zip` from [Releases](../../releases) and extract it.
 2. Install 64-bit Python 3.9 or later on Windows x64. To use Excel, Word, or Hancom Hangul, run `Office_HWP_설치.cmd` once to install pywin32.
 3. Open the destination document or tab, then run `실행.cmd`.
 4. Select the destination and press F8. Copy text in your browser with Ctrl+C or a page's copy button.
@@ -24,7 +24,7 @@ This program was developed on Windows 11. Operation on Linux, macOS, or other en
 
 Collection runs only while a supported browser is in the foreground. Supported browsers include Chrome, Edge, Firefox, Brave, Vivaldi, and Opera. Excel collection stops when it reaches an occupied cell. Hancom Hangul requires a setup that supports COM automation. If F8 conflicts with another app, use the on-screen toggle.
 
-The Windows Notepad, Excel, Word, and Hangul modes in v0.2.0 have yet to be tested on Windows. Try them with a test document first. The collector appends to the editor, and you save the results in the destination app.
+Collection in Notepad++ was verified on Windows 11. Windows Notepad, Excel, Word, and Hancom Hangul (HWP) have yet to be tested. Try unverified destinations with a test document first and save the collected text in the destination app.
 
 ## Building an EXE
 
