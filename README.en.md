@@ -32,7 +32,7 @@ Collection was verified on Windows 11 in Notepad++, Windows Notepad, Excel, and 
 
 If you're unsure which Python version to install, we recommend **[Python 3.13.17 (Windows 64-bit)](https://www.python.org/downloads/release/python-31317/#files)**.
 
-Run `Build_EXE.cmd` to install PyInstaller and pywin32 and build `dist/NotepadPP_ClipboardCollector.exe`.
+Run `Build_EXE.cmd` to install PyInstaller and pywin32 and build `dist/Clipboard Collector/Clipboard Collector.exe`. Keep the `_internal` folder alongside the executable.
 
 [Detailed guide (English)](USER_GUIDE.en.txt) · [Detailed guide (Korean)](README.txt) · [Changelog (Korean)](CHANGELOG.txt)
 

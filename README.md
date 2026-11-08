@@ -32,7 +32,7 @@ Windows 11에서 Notepad++, 기본 메모장, Excel, Word의 수집 동작을 �
 
 Python 버전 선택이 어려우신 분께는 **[Python 3.13.17 (Windows 64-bit)](https://www.python.org/downloads/release/python-31317/#files)** 설치를 추천합니다.
 
-`Build_EXE.cmd`를 실행하면 PyInstaller와 pywin32를 설치하고 `dist/NotepadPP_ClipboardCollector.exe`를 만듭니다.
+`Build_EXE.cmd`를 실행하면 PyInstaller와 pywin32를 설치하고 `dist/Clipboard Collector/Clipboard Collector.exe`를 만듭니다. 실행 파일과 같은 폴더에 있는 `_internal`도 함께 보관하세요.
 
 [상세 사용설명서](README.txt) · [영문 상세 사용설명서](USER_GUIDE.en.txt) · [변경 이력](CHANGELOG.txt)
 
