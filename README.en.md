@@ -8,10 +8,9 @@ This program was developed on Windows 11. Operation on Linux, macOS, or other en
 
 ## Getting started
 
-1. Download `Clipboard_Collector_v0.2.1.zip` from [Releases](../../releases) and extract it.
-2. Install [64-bit Python 3.9 or later](https://www.python.org/downloads/windows/) on Windows x64. To use Excel, Word, or Hancom Hangul, run `Install_Office_HWP_Support.cmd` once to install pywin32.
-   If you're unsure which Python version to install, we recommend **[Python 3.13.17 (Windows 64-bit)](https://www.python.org/downloads/release/python-31317/#files)**.
-3. Open the destination document or tab, then run `Run.cmd`.
+1. Download `Clipboard_Collector_v1.0.0_Windows_x64.exe` from [Releases](../../releases/latest).
+2. Run the EXE on 64-bit Windows 11. You do not need to install Python or pywin32.
+3. Open the destination document or tab in the app you want to collect into.
 4. Select the destination and press F8. Copy text in your browser with Ctrl+C or a page's copy button.
 5. Press F8 again to stop collection. Check the results and save them in the destination app.
 
@@ -27,9 +26,13 @@ Collection runs only while a supported browser is in the foreground. Supported b
 
 Collection was verified on Windows 11 in Notepad++, Windows Notepad, Excel, and Word. Hancom Hangul (HWP) has yet to be tested. Try unverified destinations with a test document first and save the collected text in the destination app.
 
-## Building an EXE
+## Running or building from source
 
-Run `Build_EXE.cmd` to install PyInstaller and pywin32 and build `dist/NotepadPP_ClipboardCollector.exe`. The release ZIP contains the Python source and launch scripts.
+`Clipboard_Collector_v1.0.0.zip` contains the Python source, launch scripts, and Korean and English user guides. To run from source, install 64-bit Python 3.9 or later for Windows and run `Run.cmd`. For Excel, Word, or Hancom Hangul integration, run `Install_Office_HWP_Support.cmd` once first.
+
+If you're unsure which Python version to install, we recommend **[Python 3.13.17 (Windows 64-bit)](https://www.python.org/downloads/release/python-31317/#files)**.
+
+Run `Build_EXE.cmd` to install PyInstaller and pywin32 and build `dist/NotepadPP_ClipboardCollector.exe`.
 
 [Detailed guide (English)](USER_GUIDE.en.txt) · [Detailed guide (Korean)](README.txt) · [Changelog (Korean)](CHANGELOG.txt)
 

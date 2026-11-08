@@ -1,6 +1,6 @@
-Clipboard Collector v0.2.1 (Windows x64)
+Clipboard Collector v1.0.0 (Windows x64)
 ========================================
-Expanded from v0.1.0. Requires 64-bit Python 3.9 or later. Press F8 to toggle collection.
+For 64-bit Windows 11. Press F8 to toggle collection.
 
 Features
 - Collect clipboard text when you press Ctrl+C or use a webpage's Copy button.
@@ -17,14 +17,14 @@ Supported applications and where text goes
 5. Hancom Hangul (HWP): Appends one paragraph at a time to an open, previously saved document. Requires a Hangul installation that supports COM automation.
 
 Getting started
-1. Close any running copy of Clipboard Collector, extract the ZIP, and run Run.cmd.
+1. Close any running copy of Clipboard Collector and run Clipboard_Collector_v1.0.0_Windows_x64.exe from the release. To run from the source ZIP, install 64-bit Python 3.9 or later and run Run.cmd.
 2. Choose the target application in Clipboard Collector and activate the document or tab to collect into.
 3. Press F8. The window displays ON and the name of the target.
 4. In a supported browser, press Ctrl+C or use the webpage's Copy button.
 5. Check the target document, press F8 to stop, and save it with Ctrl+S.
 
 Office and HWP integration
-Run Install_Office_HWP_Support.cmd once to install pywin32 for Excel, Word, and HWP.
+The release EXE includes Python and pywin32. Run Install_Office_HWP_Support.cmd once for Excel, Word, and HWP only if you run from source.
 - Clipboard Collector connects to an application that is already running.
 - Excel: Choose an empty starting cell. Collection stops before it would overwrite any existing data. Text starting with characters such as = or + is entered as text.
 - Word: Existing content is preserved and new text is appended after the last paragraph.

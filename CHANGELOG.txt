@@ -1,5 +1,8 @@
 ﻿NotepadPP Clipboard Collector 변경 기록
 ========================================
+v1.0.0
+- Windows 64비트용 단일 EXE 배포. Python과 pywin32 별도 설치 없이 실행
+
 v0.2.0 (2026-11-08)
 - 기존 Notepad++ 모드를 유지하면서 기본 메모장, Excel, Word, 한글(HWP) 수집 대상 추가
 - F8 토글 및 브라우저 클립보드 변경 감지 유지

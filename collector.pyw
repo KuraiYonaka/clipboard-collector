@@ -705,7 +705,7 @@ def main():
         messagebox.showerror('Environment error', 'Run this program with 64-bit Python.')
         return
     root = tk.Tk()
-    root.title('Clipboard Collector v0.2.1')
+    root.title('Clipboard Collector v1.0.0')
     root.geometry('570x350')
     root.minsize(490, 335)
     root.configure(bg='#151923')
