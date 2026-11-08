@@ -24,7 +24,7 @@ This program was developed on Windows 11. Operation on Linux, macOS, or other en
 
 Collection runs only while a supported browser is in the foreground. Supported browsers include Chrome, Edge, Firefox, Brave, Vivaldi, and Opera. Excel collection stops when it reaches an occupied cell. Hancom Hangul requires a setup that supports COM automation. If F8 conflicts with another app, use the on-screen toggle.
 
-Collection in Notepad++ was verified on Windows 11. Windows Notepad, Excel, Word, and Hancom Hangul (HWP) have yet to be tested. Try unverified destinations with a test document first and save the collected text in the destination app.
+Collection in Notepad++ and Excel was verified on Windows 11. Windows Notepad was verified for target detection and text insertion. Word and Hancom Hangul (HWP) have yet to be tested. Try unverified destinations with a test document first and save the collected text in the destination app.
 
 ## Building an EXE
 

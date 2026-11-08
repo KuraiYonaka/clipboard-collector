@@ -326,52 +326,13 @@ def visible_windows():
     return items
 
 
-def remote_write_and_send(hwnd, msg, wparam, payload, timeout=3000):
-    """Pass a buffer to another process; WM messages cannot read our pointer."""
-    pid = wt.DWORD()
-    user32.GetWindowThreadProcessId(hwnd, ct.byref(pid))
-    handle = kernel32.OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, False, pid.value)
-    if not handle:
-        raise RuntimeError('편집 프로그램 메모리 접근 실패. 관리자 권한 수준을 확인하세요.')
-    remote = None
-    try:
-        remote = kernel32.VirtualAllocEx(handle, None, len(payload), MEM_COMMIT_RESERVE, PAGE_READWRITE)
-        if not remote:
-            raise RuntimeError('편집기 임시 버퍼 할당 실패')
-        written = ct.c_size_t()
-        buf = ct.create_string_buffer(payload, len(payload))
-        if not kernel32.WriteProcessMemory(handle, remote, buf, len(payload), ct.byref(written)) or written.value != len(payload):
-            raise RuntimeError('편집기 텍스트 전달 실패')
-        send_msg(hwnd, msg, wparam, remote, timeout)
-    finally:
-        if remote:
-            kernel32.VirtualFreeEx(handle, remote, 0, MEM_RELEASE)
-        kernel32.CloseHandle(handle)
-
-
 def notepad_target():
     """Pick most-recently raised Notepad, then visible editable control."""
     for top in visible_windows():
         if process_name(top) != 'notepad.exe' and winclass(top) != 'Notepad':
             continue
-        candidates = []
-        def callback(hwnd, _):
-            cls = winclass(hwnd).lower()
-            if not user32.IsWindowVisible(hwnd):
-                return True
-            if cls == 'edit' or cls.startswith('richedit'):
-                rect = wt.RECT()
-                user32.GetClientRect(hwnd, ct.byref(rect))
-                area = max(rect.right - rect.left, 0) * max(rect.bottom - rect.top, 0)
-                # avoid Notepad's search bar by preferring large editing pane.
-                score = area + (1_000_000 if cls.startswith('richeditd2d') else 0)
-                candidates.append((score, hwnd))
-            return True
-        cb = ENUMPROC(callback)
-        user32.EnumChildWindows(top, cb, 0)
-        if candidates:
-            candidates.sort(reverse=True)
-            edit = candidates[0][1]
+        edit = notepad_editor_for_window(top)
+        if edit is not None:
             return {'kind':'notepad','window':top,'editor':edit,'title':window_title(top)}
     raise RuntimeError('Windows 기본 메모장을 열고 편집할 문서를 선택해 주세요.')
 
@@ -397,10 +358,10 @@ def append_to_notepad(target, text):
     line_start = send_msg(edit, EM_LINEINDEX, max(0, lines - 1))
     last_line_len = send_msg(edit, EM_LINELENGTH, line_start)
     prefix = '\r\n' if old_len and last_line_len else ''
-    # Unicode payload; EM_REPLACESEL (Edit/RichEdit), not WM_SETTEXT.
-    body = (prefix + text).encode('utf-16-le') + b'\x00\x00'
+    # EM_REPLACESEL is a system message. Windows marshals the caller's buffer.
+    body = ct.create_unicode_buffer(prefix + text)
     send_msg(edit, EM_SETSEL, old_len, old_len)
-    remote_write_and_send(edit, EM_REPLACESEL, 1, body)
+    send_msg(edit, EM_REPLACESEL, 1, ct.addressof(body))
     new_len = send_msg(edit, WM_GETTEXTLENGTH)
     if new_len <= old_len:
         raise RuntimeError('기본 메모장에서 입력 결과를 확인하지 못했습니다.')
