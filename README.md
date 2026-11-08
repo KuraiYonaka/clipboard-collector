@@ -31,7 +31,7 @@ Windows 11에서 Notepad++, 기본 메모장, Excel, Word의 수집 동작을 �
 
 `Build_EXE.cmd`를 실행하면 PyInstaller와 pywin32를 설치하고 `dist/NotepadPP_ClipboardCollector.exe`를 만듭니다. 이 릴리스 ZIP에는 실행 스크립트와 Python 소스가 들어 있습니다.
 
-[상세 사용설명서](README.txt) · [변경 이력](CHANGELOG.txt)
+[상세 사용설명서](README.txt) · [영문 상세 사용설명서](USER_GUIDE.en.txt) · [변경 이력](CHANGELOG.txt)
 
 ## 이용 허가
 

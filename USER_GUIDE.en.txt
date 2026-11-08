@@ -1,0 +1,49 @@
+Clipboard Collector v0.2.1 (Windows x64)
+========================================
+Expanded from v0.1.0. Requires 64-bit Python 3.9 or later. Press F8 to toggle collection.
+
+Features
+- Collect clipboard text when you press Ctrl+C or use a webpage's Copy button.
+- Convert multiline text to one line and append it to the target document.
+- Each copy event creates a separate entry, so repeated text can be collected.
+- Collection runs only when enabled and a supported browser is in the foreground.
+- Select the target application, then press F8 to start or stop. Save the target document manually.
+
+Supported applications and where text goes
+1. Notepad++: Appends one line at a time to the active tab.
+2. Windows Notepad: Appends one line at a time to the active editor. Supports the classic Edit control and the RichEdit control used by Windows 11 Notepad.
+3. Microsoft Excel: Starting at the empty cell selected when you press F8, adds one entry per row down the same column of the active worksheet.
+4. Microsoft Word: Appends one paragraph at a time to the active document.
+5. Hancom Hangul (HWP): Appends one paragraph at a time to an open, previously saved document. Requires a Hangul installation that supports COM automation.
+
+Getting started
+1. Close any running copy of Clipboard Collector, extract the ZIP, and run Run.cmd.
+2. Choose the target application in Clipboard Collector and activate the document or tab to collect into.
+3. Press F8. The window displays ON and the name of the target.
+4. In a supported browser, press Ctrl+C or use the webpage's Copy button.
+5. Check the target document, press F8 to stop, and save it with Ctrl+S.
+
+Office and HWP integration
+Run Install_Office_HWP_Support.cmd once to install pywin32 for Excel, Word, and HWP.
+- Clipboard Collector connects to an application that is already running.
+- Excel: Choose an empty starting cell. Collection stops before it would overwrite any existing data. Text starting with characters such as = or + is entered as text.
+- Word: Existing content is preserved and new text is appended after the last paragraph.
+- HWP: Open a single Hangul instance with a previously saved document. Collection stops if several instances are running or if you switch documents. Older versions or some security settings may prevent automation from connecting.
+- Windows Notepad: The collector checks the title and editor area and stops when it detects a tab change.
+
+Safety and verification
+- Collection was verified on Windows 11 in Notepad++, Windows Notepad, Excel, and Word.
+- HWP has yet to be tested. Try it with a test document first.
+- The collector changes the open document in the editor. You decide whether to save it.
+- An application running as administrator may be inaccessible to a collector running with standard permissions.
+- If multiple instances of a target application are open, the collector may select the active document or most recently used window. Check the target shown when collection turns on.
+- Text copied from a webpage may include personal information. Press F8 to stop when you finish.
+- Clipboard Collector has no automatic startup, startup registration, remote communication, or automatic upload.
+- If another application is using F8, use the on-screen toggle.
+
+Building an EXE
+- Build_EXE.cmd installs PyInstaller and pywin32, then creates dist/NotepadPP_ClipboardCollector.exe.
+- Users of the built EXE do not need to install Python.
+
+Supported browsers
+Chrome, Edge, Firefox, Brave, Vivaldi, and Opera.

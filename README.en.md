@@ -31,7 +31,7 @@ Collection was verified on Windows 11 in Notepad++, Windows Notepad, Excel, and 
 
 Run `Build_EXE.cmd` to install PyInstaller and pywin32 and build `dist/NotepadPP_ClipboardCollector.exe`. The release ZIP contains the Python source and launch scripts.
 
-[Detailed guide (Korean)](README.txt) · [Changelog (Korean)](CHANGELOG.txt)
+[Detailed guide (English)](USER_GUIDE.en.txt) · [Detailed guide (Korean)](README.txt) · [Changelog (Korean)](CHANGELOG.txt)
 
 ## Permission
 
