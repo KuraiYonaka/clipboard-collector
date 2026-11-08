@@ -17,7 +17,7 @@ Supported applications and where text goes
 5. Hancom Hangul (HWP): Appends one paragraph at a time to an open, previously saved document. Requires a Hangul installation that supports COM automation.
 
 Getting started
-1. Close any running copy of Clipboard Collector and run Clipboard_Collector_v1.0.0_Windows_x64.exe from the release. To run from the source ZIP, install 64-bit Python 3.9 or later and run Run.cmd.
+1. Close any running copy of Clipboard Collector extract the release ZIP, and run Clipboard_Collector_v1.0.0_Windows_x64.exe. To run from source, install 64-bit Python 3.9 or later and run Run.cmd.
 2. Choose the target application in Clipboard Collector and activate the document or tab to collect into.
 3. Press F8. The window displays ON and the name of the target.
 4. In a supported browser, press Ctrl+C or use the webpage's Copy button.
