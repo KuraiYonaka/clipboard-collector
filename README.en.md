@@ -4,6 +4,8 @@
 
 A Windows tool that collects text copied in a browser and appends it to an open editor. Press F8 to toggle collection. Multiline text is flattened to a single line, and copying the same text again adds another entry.
 
+This program was developed on Windows 11. Operation on Linux, macOS, or other environments is not guaranteed.
+
 ## Getting started
 
 1. Download `NotepadPP_ClipboardCollector_v0.2.0.zip` from [Releases](../../releases) and extract it.
