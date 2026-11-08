@@ -10,6 +10,7 @@
 
 1. [Releases](../../releases)에서 `Clipboard_Collector_v0.2.1.zip`을 내려받아 압축을 풉니다.
 2. Windows x64에 [Python 3.9 이상 64비트](https://www.python.org/downloads/windows/)가 설치되어 있어야 합니다. Excel, Word, 한글을 쓰려면 먼저 `Install_Office_HWP_Support.cmd`를 한 번 실행합니다.
+   Python 버전 선택이 어려우신 분께는 **[Python 3.13.17 (Windows 64-bit)](https://www.python.org/downloads/release/python-31317/#files)** 설치를 추천합니다.
 3. 대상 문서나 탭을 열어 두고 `Run.cmd`로 프로그램을 실행합니다.
 4. 프로그램 창에서 대상을 선택하고 F8을 눌러 켭니다. 브라우저에서 Ctrl+C나 웹페이지의 복사 버튼으로 텍스트를 복사합니다.
 5. F8로 수집을 끈 뒤 대상 앱에서 결과를 확인하고 직접 저장합니다.

@@ -10,6 +10,7 @@ This program was developed on Windows 11. Operation on Linux, macOS, or other en
 
 1. Download `Clipboard_Collector_v0.2.1.zip` from [Releases](../../releases) and extract it.
 2. Install [64-bit Python 3.9 or later](https://www.python.org/downloads/windows/) on Windows x64. To use Excel, Word, or Hancom Hangul, run `Install_Office_HWP_Support.cmd` once to install pywin32.
+   If you're unsure which Python version to install, we recommend **[Python 3.13.17 (Windows 64-bit)](https://www.python.org/downloads/release/python-31317/#files)**.
 3. Open the destination document or tab, then run `Run.cmd`.
 4. Select the destination and press F8. Copy text in your browser with Ctrl+C or a page's copy button.
 5. Press F8 again to stop collection. Check the results and save them in the destination app.
