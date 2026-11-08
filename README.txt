@@ -17,14 +17,13 @@ Windows 11 64비트 / F8 토글
 5) 한컴오피스 한글(HWP) : 실행 중인 한글의 저장된 문서 맨 끝에 한 문단씩 추가. 한글 COM 자동화 지원 설치가 필요.
 
 실행
-1. 기존 프로그램을 종료하고 릴리스 ZIP의 압축을 푼 뒤 'Clipboard_Collector_v1.0.0_Windows_x64.exe'를 실행합니다. 소스에서 실행하려면 64비트 Python 3.9 이상을 설치하고 'Run.cmd'를 실행하세요.
+1. 압축을 푼 뒤 'Clipboard Collector.exe'를 실행합니다.
 2. 창에서 기록 대상을 선택하고 그 앱에서 수집할 문서/탭을 활성화해 둡니다.
 3. F8을 누릅니다. 프로그램 창에 ON과 대상 이름이 나타납니다.
 4. Chrome/Edge 등 웹브라우저에서 복사 버튼 또는 Ctrl+C를 누릅니다.
 5. 대상 문서에 누적된 결과를 확인하고 F8로 끈 뒤 Ctrl+S로 저장합니다.
 
 Excel / Word / HWP 연동
-- 배포 EXE에는 Python과 pywin32가 포함되어 있습니다. 소스에서 실행할 때만 'Install_Office_HWP_Support.cmd'를 한 번 실행합니다.
 - 프로그램에서 대상 앱을 새로 실행하지 않고 이미 실행 중인 앱에 연결합니다.
 - Excel: 빈 시작 셀을 미리 선택해야 하며 기존 데이터가 있으면 덮어쓰지 않고 즉시 중지합니다.
 - Excel: '=','+' 등으로 시작하는 복사 문구는 수식이 아닌 문자열로 입력합니다.
@@ -43,10 +42,6 @@ Excel / Word / HWP 연동
 - 웹페이지에서 복사한 내용에는 개인정보가 섞일 수 있으므로 수집이 끝나면 F8을 꺼 주세요.
 - 프로그램 자동실행, 시작프로그램 등록, 원격 통신, 자동 업로드 기능은 없습니다.
 - F8이 다른 프로그램에서 사용 중이라면 화면 버튼으로 ON/OFF 하세요.
-
-EXE 제작
-- 'Build_EXE.cmd' : PyInstaller+pywin32 설치 후 dist\NotepadPP_ClipboardCollector.exe 생성.
-- 빌드된 EXE 사용자는 Python 설치가 필요하지 않습니다.
 
 지원 브라우저: Chrome, Edge, Firefox, Brave, Vivaldi, Opera
 

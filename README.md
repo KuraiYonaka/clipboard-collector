@@ -9,7 +9,7 @@
 ## 시작하기
 
 1. [Releases](../../releases/latest)에서 `Clipboard_Collector_v1.0.0.zip`을 내려받아 압축을 풉니다.
-2. `Clipboard_Collector_v1.0.0_Windows_x64.exe`를 실행합니다. Windows 11 64비트에서 Python이나 pywin32를 따로 설치할 필요가 없습니다.
+2. `Clipboard Collector.exe`를 실행합니다. Windows 11 64비트에서 Python이나 pywin32를 따로 설치할 필요가 없습니다.
 3. 기록할 문서나 탭을 대상 앱에서 열어 둡니다.
 4. 프로그램 창에서 대상을 선택하고 F8을 눌러 켭니다. 브라우저에서 Ctrl+C나 웹페이지의 복사 버튼으로 텍스트를 복사합니다.
 5. F8로 수집을 끈 뒤 대상 앱에서 결과를 확인하고 직접 저장합니다.

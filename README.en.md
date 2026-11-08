@@ -9,7 +9,7 @@ This program was developed on Windows 11. Operation on Linux, macOS, or other en
 ## Getting started
 
 1. Download `Clipboard_Collector_v1.0.0.zip` from [Releases](../../releases/latest) and extract it.
-2. Run `Clipboard_Collector_v1.0.0_Windows_x64.exe` on 64-bit Windows 11. You do not need to install Python or pywin32.
+2. Run `Clipboard Collector.exe` on 64-bit Windows 11. You do not need to install Python or pywin32.
 3. Open the destination document or tab in the app you want to collect into.
 4. Select the destination and press F8. Copy text in your browser with Ctrl+C or a page's copy button.
 5. Press F8 again to stop collection. Check the results and save them in the destination app.
