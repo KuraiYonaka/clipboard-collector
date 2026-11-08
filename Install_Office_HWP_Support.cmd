@@ -9,8 +9,10 @@ if %errorlevel%==0 (
 )
 if errorlevel 1 (
   echo Installation failed.
-  pause
+  echo Press any key to continue . . .
+  pause >nul
   exit /b 1
 )
 echo pywin32 installation complete.
-pause
+echo Press any key to continue . . .
+pause >nul

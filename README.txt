@@ -1,4 +1,4 @@
-﻿NotepadPP Clipboard Collector v0.2.0 (Windows x64)
+﻿Clipboard Collector v0.2.1 (Windows x64)
 =================================================
 기존 v0.1.0 확장판 / Python 3.9 이상 64비트 / F8 토글
 
@@ -17,13 +17,13 @@
 5) 한컴오피스 한글(HWP) : 실행 중인 한글의 저장된 문서 맨 끝에 한 문단씩 추가. 한글 COM 자동화 지원 설치가 필요.
 
 실행
-1. 기존 프로그램을 종료하고 압축을 풀어 '실행.cmd'를 시작합니다.
+1. 기존 프로그램을 종료하고 압축을 풀어 'Run.cmd'를 시작합니다.
 2. 창에서 기록 대상을 선택하고 그 앱에서 수집할 문서/탭을 활성화해 둡니다.
 3. F8을 누릅니다. 프로그램 창에 ON과 대상 이름이 나타납니다.
 4. Chrome/Edge 등 웹브라우저에서 복사 버튼 또는 Ctrl+C를 누릅니다.
 5. 대상 문서에 누적된 결과를 확인하고 F8로 끈 뒤 Ctrl+S로 저장합니다.
 
-Excel/Word/HWP는 pywin32가 필요: 'Office_HWP_설치.cmd' 1회 실행
+Excel/Word/HWP는 pywin32가 필요: 'Install_Office_HWP_Support.cmd' 1회 실행
 - 프로그램에서 대상 앱을 새로 실행하지 않고 이미 실행 중인 앱에 연결합니다.
 - Excel: 빈 시작 셀을 미리 선택해야 하며 기존 데이터가 있으면 덮어쓰지 않고 즉시 중지합니다.
 - Excel: '=','+' 등으로 시작하는 복사 문구는 수식이 아닌 문자열로 입력합니다.
@@ -44,7 +44,7 @@ Excel/Word/HWP는 pywin32가 필요: 'Office_HWP_설치.cmd' 1회 실행
 - F8이 다른 프로그램에서 사용 중이라면 화면 버튼으로 ON/OFF 하세요.
 
 EXE 제작
-- 'EXE_빌드.cmd' : PyInstaller+pywin32 설치 후 dist\NotepadPP_ClipboardCollector.exe 생성.
+- 'Build_EXE.cmd' : PyInstaller+pywin32 설치 후 dist\NotepadPP_ClipboardCollector.exe 생성.
 - 빌드된 EXE 사용자는 Python 설치가 필요하지 않습니다.
 
 지원 브라우저: Chrome, Edge, Firefox, Brave, Vivaldi, Opera

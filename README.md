@@ -8,9 +8,9 @@
 
 ## 시작하기
 
-1. [Releases](../../releases)에서 `Clipboard_Collector_v0.2.0.zip`을 내려받아 압축을 풉니다.
-2. Windows x64에 Python 3.9 이상 64비트가 설치되어 있어야 합니다. Excel, Word, 한글을 쓰려면 먼저 `Office_HWP_설치.cmd`를 한 번 실행합니다.
-3. 대상 문서나 탭을 열어 두고 `실행.cmd`로 프로그램을 실행합니다.
+1. [Releases](../../releases)에서 `Clipboard_Collector_v0.2.1.zip`을 내려받아 압축을 풉니다.
+2. Windows x64에 Python 3.9 이상 64비트가 설치되어 있어야 합니다. Excel, Word, 한글을 쓰려면 먼저 `Install_Office_HWP_Support.cmd`를 한 번 실행합니다.
+3. 대상 문서나 탭을 열어 두고 `Run.cmd`로 프로그램을 실행합니다.
 4. 프로그램 창에서 대상을 선택하고 F8을 눌러 켭니다. 브라우저에서 Ctrl+C나 웹페이지의 복사 버튼으로 텍스트를 복사합니다.
 5. F8로 수집을 끈 뒤 대상 앱에서 결과를 확인하고 직접 저장합니다.
 
@@ -28,7 +28,7 @@ Windows 11에서 Notepad++, 기본 메모장, Excel, Word의 수집 동작을 �
 
 ## EXE 직접 빌드
 
-`EXE_빌드.cmd`를 실행하면 PyInstaller와 pywin32를 설치하고 `dist/NotepadPP_ClipboardCollector.exe`를 만듭니다. 이 릴리스 ZIP에는 실행 스크립트와 Python 소스가 들어 있습니다.
+`Build_EXE.cmd`를 실행하면 PyInstaller와 pywin32를 설치하고 `dist/NotepadPP_ClipboardCollector.exe`를 만듭니다. 이 릴리스 ZIP에는 실행 스크립트와 Python 소스가 들어 있습니다.
 
 [상세 사용설명서](README.txt) · [변경 이력](CHANGELOG.txt)
 

@@ -12,5 +12,6 @@ if %errorlevel%==0 (
   exit /b 0
 )
 echo Python 3 x64 not found.
-pause
+echo Press any key to continue . . .
+pause >nul
 exit /b 1

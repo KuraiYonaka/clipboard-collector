@@ -156,7 +156,7 @@ def send_msg(hwnd, msg, wparam=0, lparam=0, timeout=1500):
     result = ULONG_PTR()
     ok = user32.SendMessageTimeoutW(hwnd, msg, wparam, lparam, SMTO_ABORTIFHUNG, timeout, ct.byref(result))
     if not ok:
-        raise RuntimeError('Notepad++ 응답 없음 또는 메시지 전송 실패')
+        raise RuntimeError('The editor did not respond or the message could not be delivered.')
     return result.value
 
 
@@ -189,7 +189,7 @@ def get_scintilla(npp):
     """Select the current Scintilla view; only direct Notepad++ Scintilla children count."""
     view = send_msg(npp, NPPM_GETCURRENTVIEW)
     if view not in (0, 1):
-        raise RuntimeError('Notepad++ 현재 편집 화면을 확인하지 못했사와요.')
+        raise RuntimeError('Could not identify the active Notepad++ editor.')
     children = []
     def callback(hwnd, unused):
         name = ct.create_unicode_buffer(128)
@@ -200,27 +200,27 @@ def get_scintilla(npp):
     cb = ENUMPROC(callback)
     user32.EnumChildWindows(npp, cb, 0)
     if len(children) <= view:
-        raise RuntimeError('Notepad++ 편집 영역(Scintilla)을 찾을 수 없습니다.')
+        raise RuntimeError('Could not find the Notepad++ editor (Scintilla).')
     return children[view]
 
 
 def get_npp_target():
     npp = user32.FindWindowW('Notepad++', None)
     if not npp:
-        raise RuntimeError('Notepad++를 먼저 실행하고, 수집할 TXT 탭을 열어주시와요.')
+        raise RuntimeError('Open Notepad++ and select the text tab to collect into.')
     sci = get_scintilla(npp)
     if send_msg(sci, SCI_GETREADONLY):
-        raise RuntimeError('Notepad++ 현재 탭이 읽기 전용입니다.')
+        raise RuntimeError('The active Notepad++ tab is read-only.')
     return npp, sci, send_msg(sci, SCI_GETDOCPOINTER)
 
 
 def append_to_scintilla(npp, sci, docptr, text):
     if not user32.IsWindow(npp) or not user32.IsWindow(sci):
-        raise RuntimeError('Notepad++가 닫혔습니다. F8을 눌러 다시 활성화하세요.')
+        raise RuntimeError('Notepad++ closed. Press F8 to start again.')
     if get_scintilla(npp) != sci or send_msg(sci, SCI_GETDOCPOINTER) != docptr:
-        raise RuntimeError('Notepad++의 대상 탭이 바뀌었습니다. 수집을 중지했습니다.')
+        raise RuntimeError('The Notepad++ tab changed. Collection stopped.')
     if send_msg(sci, SCI_GETREADONLY):
-        raise RuntimeError('대상 문서가 읽기 전용입니다.')
+        raise RuntimeError('The target document is read-only.')
     codepage = send_msg(sci, SCI_GETCODEPAGE)
     if codepage == 65001:
         encoding = 'utf-8'
@@ -231,7 +231,7 @@ def append_to_scintilla(npp, sci, docptr, text):
     try:
         text_bytes = text.encode(encoding, errors='strict')
     except (UnicodeError, LookupError):
-        raise RuntimeError('문서 인코딩에서 표현할 수 없는 문자가 있습니다. UTF-8로 바꿔주세요.')
+        raise RuntimeError('Some characters cannot be written in this encoding. Switch the document to UTF-8.')
     length = send_msg(sci, SCI_GETLENGTH)
     eol_mode = send_msg(sci, SCI_GETEOLMODE)
     eol = (b'\r\n', b'\r', b'\n')[eol_mode] if eol_mode in (0, 1, 2) else b'\r\n'
@@ -242,16 +242,16 @@ def append_to_scintilla(npp, sci, docptr, text):
     user32.GetWindowThreadProcessId(sci, ct.byref(pid))
     proc = kernel32.OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, False, pid.value)
     if not proc:
-        raise RuntimeError('Notepad++ 편집 권한이 부족합니다. 두 프로그램의 권한 수준을 확인하세요.')
+        raise RuntimeError('Could not access the Notepad++ editor. Check that both apps have the same permission level.')
     remote = None
     try:
         remote = kernel32.VirtualAllocEx(proc, None, len(payload), MEM_COMMIT_RESERVE, PAGE_READWRITE)
         if not remote:
-            raise RuntimeError('Notepad++ 임시 메모리를 할당할 수 없습니다.')
+            raise RuntimeError('Could not allocate a temporary buffer in Notepad++.')
         buf = ct.create_string_buffer(payload, len(payload))
         written = ct.c_size_t(0)
         if not kernel32.WriteProcessMemory(proc, remote, buf, len(payload), ct.byref(written)) or written.value != len(payload):
-            raise RuntimeError('Notepad++에 텍스트를 전달하지 못했습니다.')
+            raise RuntimeError('Could not send text to Notepad++.')
         send_msg(sci, SCI_APPENDTEXT, len(payload), remote, timeout=3000)
     finally:
         if remote:
@@ -262,7 +262,7 @@ def append_to_scintilla(npp, sci, docptr, text):
         # Keep the newest clipboard entry visible in Notepad++ without focusing it.
         send_msg(sci, SCI_GOTOPOS, new_length)
     if new_length != length + len(payload):
-        raise RuntimeError('Notepad++에 반영된 길이를 확인하지 못했습니다.')
+        raise RuntimeError('Could not verify the new text length in Notepad++.')
 
 
 def read_clipboard(hwnd):
@@ -288,7 +288,7 @@ def read_clipboard(hwnd):
 
 
 
-MODES = ('Notepad++', 'Windows 메모장', 'Excel', 'Word', '한글(HWP)')
+MODES = ('Notepad++', 'Windows Notepad', 'Excel', 'Word', 'Hancom Hangul (HWP)')
 
 
 def process_name(hwnd):
@@ -334,7 +334,7 @@ def notepad_target():
         edit = notepad_editor_for_window(top)
         if edit is not None:
             return {'kind':'notepad','window':top,'editor':edit,'title':window_title(top)}
-    raise RuntimeError('Windows 기본 메모장을 열고 편집할 문서를 선택해 주세요.')
+    raise RuntimeError('Open Windows Notepad and select a document to edit.')
 
 
 def normalize_notepad_title(title):
@@ -346,13 +346,13 @@ def append_to_notepad(target, text):
     top = target['window']
     edit = target['editor']
     if not user32.IsWindow(top) or not user32.IsWindow(edit):
-        raise RuntimeError('메모장 창이 닫혔습니다. 수집을 중지합니다.')
+        raise RuntimeError('The Notepad window closed. Collection stopped.')
     if normalize_notepad_title(window_title(top)) != normalize_notepad_title(target['title']):
-        raise RuntimeError('메모장 제목/탭이 변경되었습니다. 다른 문서로 기록하지 않도록 중지합니다.')
+        raise RuntimeError('The Notepad title or tab changed. Collection stopped to protect the other document.')
     # If app changes editing tab/window, don't silently write into another buffer.
     last = notepad_editor_for_window(top)
     if last != edit:
-        raise RuntimeError('메모장 편집 탭이 바뀌었습니다. 수집을 중지합니다.')
+        raise RuntimeError('The Notepad editing tab changed. Collection stopped.')
     old_len = send_msg(edit, WM_GETTEXTLENGTH)
     lines = send_msg(edit, EM_GETLINECOUNT)
     line_start = send_msg(edit, EM_LINEINDEX, max(0, lines - 1))
@@ -364,7 +364,7 @@ def append_to_notepad(target, text):
     send_msg(edit, EM_REPLACESEL, 1, ct.addressof(body))
     new_len = send_msg(edit, WM_GETTEXTLENGTH)
     if new_len <= old_len:
-        raise RuntimeError('기본 메모장에서 입력 결과를 확인하지 못했습니다.')
+        raise RuntimeError('Could not verify the text inserted into Notepad.')
 
 
 def notepad_editor_for_window(top):
@@ -388,7 +388,7 @@ def require_com():
         import pythoncom
         import win32com.client as win32
     except ImportError as exc:
-        raise RuntimeError('Excel/Word/한글 연동에는 pywin32가 필요합니다. Office_HWP_설치.cmd 실행 후 다시 시도하세요.') from exc
+        raise RuntimeError('Excel, Word, and Hancom Hangul require pywin32. Run Install_Office_HWP_Support.cmd and try again.') from exc
     return pythoncom, win32
 
 
@@ -400,32 +400,32 @@ def acquire_excel():
         sheet = app.ActiveSheet
         cell = app.ActiveCell
         if not book or not sheet or not cell or sheet.Type != -4167:
-            raise ValueError('활성 워크시트가 없습니다.')
+            raise ValueError('There is no active worksheet.')
         if book.ReadOnly or sheet.ProtectContents:
-            raise ValueError('읽기 전용 또는 보호된 시트입니다.')
+            raise ValueError('The worksheet is read-only or protected.')
         col, row = int(cell.Column), int(cell.Row)
         # Never overwrite existing content. User first selects an empty cell.
         if cell.Value2 is not None:
-            raise ValueError('Excel에서 비어 있는 시작 셀을 선택한 후 F8을 누르세요.')
+            raise ValueError('Select an empty starting cell in Excel, then press F8.')
         return {'kind':'excel','app':app,'book':book,'sheet':sheet,'col':col,'next_row':row,
                 'book_name':str(book.FullName),'sheet_name':str(sheet.Name),
                 'label':f'{book.Name} / {sheet.Name} / {cell.Address}'}
     except Exception as exc:
-        raise RuntimeError('실행 중인 Excel의 빈 시작 셀을 선택해 주세요. (' + str(exc) + ')') from exc
+        raise RuntimeError('Select an empty starting cell in the open Excel workbook. (' + str(exc) + ')') from exc
 
 
 def append_to_excel(target, text):
     book, sheet = target['book'], target['sheet']
     if str(book.FullName) != target['book_name'] or str(sheet.Name) != target['sheet_name']:
-        raise RuntimeError('Excel 대상 문서가 변경되었습니다.')
+        raise RuntimeError('The target Excel workbook changed.')
     row, col = target['next_row'], target['col']
     if row > 1048576 or len(text) > 32767:
-        raise RuntimeError('Excel 셀 최대 행 또는 텍스트 길이(32,767자)를 초과했습니다.')
+        raise RuntimeError('The Excel row limit or cell text limit (32,767 characters) was exceeded.')
     cell = sheet.Cells(row, col)
     if cell.Value2 is not None:
-        raise RuntimeError(f'Excel {cell.Address} 셀에 이미 내용이 있어 덮어쓰지 않고 중지했습니다.')
+        raise RuntimeError(f'Excel cell {cell.Address} already contains data. Collection stopped to avoid overwriting it.')
     if bool(sheet.ProtectContents) or bool(book.ReadOnly):
-        raise RuntimeError('Excel 시트가 보호되어 있거나 읽기 전용입니다.')
+        raise RuntimeError('The Excel worksheet is protected or read-only.')
     # Literal text only; avoid formula execution from untrusted copied strings.
     cell.NumberFormat = '@'
     cell.Value2 = text
@@ -438,17 +438,17 @@ def acquire_word():
         app = win32.GetActiveObject('Word.Application')
         doc = app.ActiveDocument
         if not doc or doc.ReadOnly or doc.ProtectionType != -1:
-            raise ValueError('읽기 전용 또는 보호된 문서입니다.')
+            raise ValueError('The document is read-only or protected.')
         return {'kind':'word','app':app,'doc':doc,'path':str(doc.FullName),
                 'label':str(doc.Name),'added':0}
     except Exception as exc:
-        raise RuntimeError('실행 중인 Word의 편집 가능한 문서를 선택해 주세요. (' + str(exc) + ')') from exc
+        raise RuntimeError('Select an editable document in the open Word window. (' + str(exc) + ')') from exc
 
 
 def append_to_word(target, text):
     doc = target['doc']
     if str(doc.FullName) != target['path'] or doc.ReadOnly or doc.ProtectionType != -1:
-        raise RuntimeError('Word 대상 문서가 변경되었거나 편집 불가 상태입니다.')
+        raise RuntimeError('The target Word document changed or is no longer editable.')
     end = int(doc.Content.End)
     # A blank Word document contains only its final paragraph mark.
     has_text = end > 1
@@ -474,39 +474,39 @@ def acquire_hwp():
         try:
             objects = [win32.GetActiveObject('HWPFrame.HwpObject')]
         except Exception as exc:
-            raise RuntimeError('실행 중인 한글(HWP) 자동화 객체를 찾지 못했습니다.') from exc
+            raise RuntimeError('Could not connect to a running Hancom Hangul (HWP) instance.') from exc
     if len(objects) > 1:
-        raise RuntimeError('한글(HWP)이 여러 개 실행 중입니다. 오입력 방지를 위해 한 개만 열고 시도하세요.')
+        raise RuntimeError('Multiple Hancom Hangul (HWP) instances are open. Close the others and try again.')
     hwp = objects[0]
     try:
         path = str(hwp.Path or '')
         if not path:
-            raise ValueError('저장된 이름이 있는 한글 문서를 먼저 열어 주세요.')
+            raise ValueError('Open a previously saved Hancom Hangul document first.')
         if int(hwp.EditMode) != 1:
-            raise ValueError('현재 한글 문서가 일반 편집 모드가 아닙니다.')
+            raise ValueError('The Hancom Hangul document is not in normal editing mode.')
         # Read once at start only, to avoid an unwanted blank first paragraph.
         body = hwp.GetTextFile('TEXT', 'saveall')
         has_content = bool(str(body or '').strip('\r\n\t \x00'))
         return {'kind':'hwp','hwp':hwp,'path':path,'has_content':has_content,
                 'label':os.path.basename(path)}
     except Exception as exc:
-        raise RuntimeError('한글의 편집 가능한 문서를 지정하지 못했습니다. (' + str(exc) + ')') from exc
+        raise RuntimeError('Could not select an editable Hancom Hangul document. (' + str(exc) + ')') from exc
 
 
 def append_to_hwp(target, text):
     hwp = target['hwp']
     if str(hwp.Path or '') != target['path'] or int(hwp.EditMode) != 1:
-        raise RuntimeError('한글 대상 문서가 변경되거나 편집 불가 상태가 되었습니다.')
+        raise RuntimeError('The target Hancom Hangul document changed or is no longer editable.')
     if not hwp.HAction.Run('MoveDocEnd'):
-        raise RuntimeError('한글 문서 끝으로 이동하지 못했습니다.')
+        raise RuntimeError('Could not move to the end of the Hancom Hangul document.')
     if target['has_content']:
         if not hwp.HAction.Run('BreakPara'):
-            raise RuntimeError('한글 문단 추가에 실패했습니다.')
+            raise RuntimeError('Could not add a paragraph to the Hancom Hangul document.')
     pset = hwp.HParameterSet.HInsertText
     hwp.HAction.GetDefault('InsertText', pset.HSet)
     pset.Text = text
     if not hwp.HAction.Execute('InsertText', pset.HSet):
-        raise RuntimeError('한글 텍스트 삽입에 실패했습니다. 마지막 입력을 확인하세요.')
+        raise RuntimeError('Could not insert text in Hancom Hangul. Check the last entry.')
     target['has_content'] = True
 
 
@@ -525,7 +525,7 @@ def acquire_target(mode):
         return acquire_word()
     if mode == 4:
         return acquire_hwp()
-    raise RuntimeError('알 수 없는 대상 프로그램입니다.')
+    raise RuntimeError('Unknown target application.')
 
 
 def append_to_target(target, text):
@@ -540,7 +540,7 @@ def append_to_target(target, text):
         return append_to_word(target, text)
     if k == 'hwp':
         return append_to_hwp(target, text)
-    raise RuntimeError('지원되지 않는 대상입니다.')
+    raise RuntimeError('Unsupported target.')
 
 
 def normalize_line(value):
@@ -582,18 +582,18 @@ class Collector:
             klass.lpfnWndProc = self._callback
             klass.lpszClassName = class_name
             if not user32.RegisterClassExW(ct.byref(klass)):
-                raise RuntimeError('Windows 메시지 창 등록 실패')
+                raise RuntimeError('Could not register the Windows message window.')
             self.hwnd = user32.CreateWindowExW(0, class_name, 'NppClipboardCollector', 0, 0, 0, 0, 0, HWND_MESSAGE, None, instance, None)
             if not self.hwnd:
-                raise RuntimeError('Windows 메시지 창 생성 실패')
+                raise RuntimeError('Could not create the Windows message window.')
             clip_ok = user32.AddClipboardFormatListener(self.hwnd)
             hotkey_ok = user32.RegisterHotKey(self.hwnd, HOTKEY_ID, 0, VK_F8)
             if not clip_ok:
-                raise RuntimeError('클립보드 변경 감지 등록 실패')
+                raise RuntimeError('Could not register for clipboard updates.')
             if not hotkey_ok:
-                self._emit('notice', 'F8이 다른 프로그램에 등록되어 있습니다. 화면 버튼으로 전환하세요.')
+                self._emit('notice', 'Another application is using F8. Use the on-screen button to toggle collection.')
             else:
-                self._emit('notice', '준비 완료. 대상 프로그램을 선택한 뒤 F8을 누르세요.')
+                self._emit('notice', 'Ready. Select a target application, then press F8.')
             self._emit('ready', hotkey_ok)
             message = wt.MSG()
             while user32.GetMessageW(ct.byref(message), None, 0, 0) > 0:
@@ -612,8 +612,8 @@ class Collector:
         if self.enabled:
             self.enabled = False
             self.target = None
-            self._emit('state', (False, '대기 중'))
-            self._emit('notice', '자동 수집을 중지했습니다.')
+            self._emit('state', (False, 'Idle'))
+            self._emit('notice', 'Collection stopped.')
             return
         try:
             self.target = acquire_target(self.mode)
@@ -622,11 +622,11 @@ class Collector:
             self.enabled = True
             self._emit('state', (True, self.target['label']))
             self._emit('count', 0)
-            self._emit('notice', '수집 ON. 브라우저에서 복사하면 지정된 문서에 한 줄씩 추가합니다.')
+            self._emit('notice', 'Collection is on. Copy text in your browser to add one line at a time.')
         except Exception as exc:
             self.enabled = False
             self.target = None
-            self._emit('state', (False, '대기 중'))
+            self._emit('state', (False, 'Idle'))
             self._emit('notice', str(exc))
 
     def _copy_event(self):
@@ -645,18 +645,18 @@ class Collector:
         if not line:
             return
         if len(line) > 500_000:
-            self._emit('notice', '복사 문구가 50만 자를 넘어 건너뛰었습니다.')
+            self._emit('notice', 'Skipped copied text longer than 500,000 characters.')
             return
         try:
             append_to_target(self.target, line)
             self.count += 1
             self._emit('count', self.count)
-            self._emit('notice', f'{self.count}개 추가 완료. 편집기에서 저장(Ctrl+S)하세요.')
+            self._emit('notice', f'Entries added: {self.count}. Save in the editor with Ctrl+S.')
         except Exception as exc:
             self.enabled = False
             self.target = None
-            self._emit('state', (False, '대기 중'))
-            self._emit('notice', '수집 OFF: ' + str(exc))
+            self._emit('state', (False, 'Idle'))
+            self._emit('notice', 'Collection stopped: ' + str(exc))
 
     def _wndproc(self, hwnd, msg, wparam, lparam):
         try:
@@ -669,7 +669,7 @@ class Collector:
             if msg == WM_APP_MODE:
                 if not self.enabled and 0 <= int(wparam) < len(MODES):
                     self.mode = int(wparam)
-                    self._emit('notice', f'대상 프로그램: {MODES[self.mode]}. F8로 시작하세요.')
+                    self._emit('notice', f'Target application: {MODES[self.mode]}. Press F8 to start.')
                 return 0
             if msg == WM_CLIPBOARDUPDATE:
                 self._copy_event()
@@ -683,8 +683,8 @@ class Collector:
         except Exception as exc:
             self.enabled = False
             self.target = None
-            self._emit('state', (False, '대기 중'))
-            self._emit('notice', '오류: ' + str(exc))
+            self._emit('state', (False, 'Idle'))
+            self._emit('notice', 'Error: ' + str(exc))
         return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
 
     def toggle_from_ui(self):
@@ -702,10 +702,10 @@ class Collector:
 
 def main():
     if struct.calcsize('P') != 8:
-        messagebox.showerror('실행 환경 오류', '64비트 Python으로 실행해 주세요.')
+        messagebox.showerror('Environment error', 'Run this program with 64-bit Python.')
         return
     root = tk.Tk()
-    root.title('NotepadPP Clipboard Collector v0.2.0')
+    root.title('Clipboard Collector v0.2.1')
     root.geometry('570x350')
     root.minsize(490, 335)
     root.configure(bg='#151923')
@@ -714,9 +714,9 @@ def main():
     frame.pack(fill='both', expand=True)
     tk.Label(frame, text='Clipboard Collector', bg='#151923', fg=fg,
              font=('Malgun Gothic', 17, 'bold')).pack(anchor='w')
-    tk.Label(frame, text='브라우저에서 복사 → 열린 문서에 한 줄씩 추가', bg='#151923', fg=muted,
+    tk.Label(frame, text='Copy from a browser into an open document, one line at a time', bg='#151923', fg=muted,
              font=('Malgun Gothic', 10)).pack(anchor='w', pady=(4, 12))
-    tk.Label(frame, text='기록 대상', bg='#151923', fg=fg,
+    tk.Label(frame, text='Target application', bg='#151923', fg=fg,
              font=('Malgun Gothic', 10, 'bold')).pack(anchor='w')
     mode_var = tk.StringVar(value=MODES[0])
     style = ttk.Style()
@@ -724,17 +724,17 @@ def main():
     style.configure('Collector.TCombobox', font=('Malgun Gothic', 10))
     combo = ttk.Combobox(frame, textvariable=mode_var, values=MODES, state='readonly', style='Collector.TCombobox')
     combo.pack(fill='x', pady=(4, 10))
-    state_var = tk.StringVar(value='● OFF  |  F8로 시작')
+    state_var = tk.StringVar(value='● OFF  |  Press F8 to start')
     state_label = tk.Label(frame, textvariable=state_var, bg='#151923', fg='#ee9e9e',
                            font=('Malgun Gothic', 14, 'bold'))
     state_label.pack(anchor='w')
-    target_var = tk.StringVar(value='대상: 없음')
+    target_var = tk.StringVar(value='Target: None')
     tk.Label(frame, textvariable=target_var, bg='#151923', fg=muted, anchor='w',
              justify='left', wraplength=510, font=('Malgun Gothic', 9)).pack(fill='x', pady=(7, 6))
-    count_var = tk.StringVar(value='추가한 항목: 0개')
+    count_var = tk.StringVar(value='Entries added: 0')
     tk.Label(frame, textvariable=count_var, bg='#151923', fg=fg,
              font=('Malgun Gothic', 10)).pack(anchor='w', pady=(0, 6))
-    notice_var = tk.StringVar(value='준비 중...')
+    notice_var = tk.StringVar(value='Starting...')
     tk.Label(frame, textvariable=notice_var, bg='#151923', fg=muted,
              wraplength=510, justify='left', anchor='w', font=('Malgun Gothic', 9)).pack(fill='x')
     events = queue.Queue()
@@ -742,7 +742,7 @@ def main():
     def on_mode(_=None):
         collector.set_mode_from_ui(MODES.index(mode_var.get()))
     combo.bind('<<ComboboxSelected>>', on_mode)
-    btn = tk.Button(frame, text='F8  |  수집 ON / OFF', command=collector.toggle_from_ui,
+    btn = tk.Button(frame, text='F8  |  Toggle collection', command=collector.toggle_from_ui,
                     bg='#315d91', fg='white', activebackground='#447aba', activeforeground='white',
                     font=('Malgun Gothic', 11, 'bold'), relief='flat', pady=7, cursor='hand2')
     btn.pack(fill='x', side='bottom')
@@ -753,12 +753,12 @@ def main():
                 kind, data = events.get_nowait()
                 if kind == 'state':
                     on, title = data
-                    state_var.set('● ON  |  F8로 중지' if on else '● OFF  |  F8로 시작')
+                    state_var.set('● ON  |  Press F8 to stop' if on else '● OFF  |  Press F8 to start')
                     state_label.config(fg='#81e4a5' if on else '#ee9e9e')
-                    target_var.set('대상: ' + title if on else '대상: 없음')
+                    target_var.set('Target: ' + title if on else 'Target: None')
                     combo.configure(state='disabled' if on else 'readonly')
                 elif kind == 'count':
-                    count_var.set(f'추가한 항목: {data}개')
+                    count_var.set(f'Entries added: {data}')
                 elif kind in ('notice', 'error'):
                     notice_var.set(data)
         except queue.Empty:

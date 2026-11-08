@@ -9,9 +9,11 @@ if errorlevel 1 goto error
 if errorlevel 1 goto error
 echo.
 echo Created: %~dp0dist\NotepadPP_ClipboardCollector.exe
-pause
+echo Press any key to continue . . .
+pause >nul
 exit /b 0
 :error
 echo Build failed.
-pause
+echo Press any key to continue . . .
+pause >nul
 exit /b 1

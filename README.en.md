@@ -8,9 +8,9 @@ This program was developed on Windows 11. Operation on Linux, macOS, or other en
 
 ## Getting started
 
-1. Download `Clipboard_Collector_v0.2.0.zip` from [Releases](../../releases) and extract it.
-2. Install 64-bit Python 3.9 or later on Windows x64. To use Excel, Word, or Hancom Hangul, run `Office_HWP_설치.cmd` once to install pywin32.
-3. Open the destination document or tab, then run `실행.cmd`.
+1. Download `Clipboard_Collector_v0.2.1.zip` from [Releases](../../releases) and extract it.
+2. Install 64-bit Python 3.9 or later on Windows x64. To use Excel, Word, or Hancom Hangul, run `Install_Office_HWP_Support.cmd` once to install pywin32.
+3. Open the destination document or tab, then run `Run.cmd`.
 4. Select the destination and press F8. Copy text in your browser with Ctrl+C or a page's copy button.
 5. Press F8 again to stop collection. Check the results and save them in the destination app.
 
@@ -28,7 +28,7 @@ Collection was verified on Windows 11 in Notepad++, Windows Notepad, Excel, and 
 
 ## Building an EXE
 
-Run `EXE_빌드.cmd` to install PyInstaller and pywin32 and build `dist/NotepadPP_ClipboardCollector.exe`. The release ZIP contains the Python source and launch scripts.
+Run `Build_EXE.cmd` to install PyInstaller and pywin32 and build `dist/NotepadPP_ClipboardCollector.exe`. The release ZIP contains the Python source and launch scripts.
 
 [Detailed guide (Korean)](README.txt) · [Changelog (Korean)](CHANGELOG.txt)
 
