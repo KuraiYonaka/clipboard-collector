@@ -3,9 +3,9 @@ setlocal
 cd /d "%~dp0"
 where py >nul 2>nul
 if %errorlevel%==0 (set "PY=py -3-64") else (set "PY=python")
-%PY% -m pip install --upgrade pyinstaller pywin32
+%PY% -m pip install --upgrade pyinstaller pywin32 Pillow
 if errorlevel 1 goto error
-%PY% -m PyInstaller --onedir --windowed --clean --name "Clipboard Collector" --hidden-import pythoncom --hidden-import win32com.client collector.pyw
+%PY% -m PyInstaller --onedir --windowed --clean --noupx --name "Clipboard Collector" --hidden-import pythoncom --hidden-import win32com.client collector.pyw
 if errorlevel 1 goto error
 echo.
 echo Created: %~dp0dist\Clipboard Collector\Clipboard Collector.exe

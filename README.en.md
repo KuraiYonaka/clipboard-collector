@@ -1,41 +1,29 @@
-[한국어](README.md) · **English**
+**English** · [한국어](README.md)
 
 # Clipboard Collector
 
-A Windows tool that collects text copied in a browser and appends it to an open editor. Press F8 to toggle collection. Multiline text is flattened to a single line, and copying the same text again adds another entry.
-
-This program was developed on Windows 11. Operation on Linux, macOS, or other environments is not guaranteed.
+Collect copied text and pictures in open documents on Windows. Collect from browsers or all apps, and send entries to multiple destinations at once.
 
 ## Getting started
 
-1. Download `Clipboard_Collector_v1.0.0.zip` from [Releases](../../releases/latest) and extract it.
-2. Run `Clipboard Collector.exe` on 64-bit Windows 11. You do not need to install Python or pywin32.
-3. Open the destination document or tab in the app you want to collect into.
-4. Select the destination and press F8. Copy text in your browser with Ctrl+C or a page's copy button.
-5. Press F8 again to stop collection. Check the results and save them in the destination app.
+1. Download `Clipboard_Collector_v1.2.3.zip` from the [latest release](../../releases/latest) and extract the entire archive.
+2. Run `Clipboard Collector.exe`. The 64-bit Windows 11 build includes its Python runtime. Keep the `_internal` folder next to the EXE.
+3. Open your documents and select the destinations. In Excel, click an empty starting cell once. Finish any active cell edit first.
+4. Start collection and copy the items you want to keep. Turn on **Collect pictures** to insert images in Excel or Word.
 
-| Destination | Where text is added |
-| --- | --- |
-| Notepad++ | At the end of the active tab |
-| Windows Notepad | At the end of the open editor |
-| Excel | One entry per row, starting at the selected empty cell and moving down the same column |
-| Word | One paragraph at a time at the end of the current document |
-| Hancom Hangul (HWP) | One paragraph at a time at the end of an open, previously saved document |
+| Destination | Text placement | Pictures |
+| --- | --- | --- |
+| Notepad++ and Windows Notepad | End of the active document | — |
+| Excel | Down the same column from the selected empty cell | Inserted at original size |
+| Word | End of the document | Inserted at original size |
+| Hancom Hangul (HWP) | End of a previously saved, open document | — |
 
-Collection runs only while a supported browser is in the foreground. Supported browsers include Chrome, Edge, Firefox, Brave, Vivaldi, and Opera. Excel collection stops when it reaches an occupied cell. Hancom Hangul requires a setup that supports COM automation. If F8 conflicts with another app, use the on-screen toggle.
+Excel and Word support saving after each entry or when stopping collection. Use **Send collected text** to send existing text to Excel or Word one line at a time. The app supports Korean and English and an optional global shortcut.
 
-Collection was verified on Windows 11 in Notepad++, Windows Notepad, Excel, and Word. Hancom Hangul (HWP) has yet to be tested. Try unverified destinations with a test document first and save the collected text in the destination app.
+Developed on Windows 11. Picture insertion and saving were tested in Excel and Word. HWP text collection has not been tested in Hancom Hangul.
 
-## Running or building from source
+## Running from source and building
 
-`Clipboard_Collector_v1.0.0.zip` includes the Python source and launch scripts alongside the EXE and the Korean and English user guides. To run from source, install 64-bit Python 3.9 or later for Windows and run `Run.cmd`. For Excel, Word, or Hancom Hangul integration, run `Install_Office_HWP_Support.cmd` once first.
+Install [64-bit Python for Windows](https://www.python.org/downloads/windows/). For Office/HWP integration and picture collection, run `Install_Office_HWP_Support.cmd` before starting with `Run.cmd`. `Build_EXE.cmd` builds the folder-based Windows package.
 
-If you're unsure which Python version to install, we recommend **[Python 3.13.17 (Windows 64-bit)](https://www.python.org/downloads/release/python-31317/#files)**.
-
-Run `Build_EXE.cmd` to install PyInstaller and pywin32 and build `dist/Clipboard Collector/Clipboard Collector.exe`. Keep the `_internal` folder alongside the executable.
-
-[Detailed guide (English)](USER_GUIDE.en.txt) · [Detailed guide (Korean)](README.txt) · [Changelog (Korean)](CHANGELOG.txt)
-
-## Permission
-
-You may use and modify this software and redistribute original or modified copies free of charge. You may not sell original or modified copies or charge for downloading or providing them. [Full permission notice](LICENSE.md)
+[English user guide](USER_GUIDE.en.txt) · [한국어 사용설명서](README.txt) · [Use and redistribution policy](LICENSE.md)

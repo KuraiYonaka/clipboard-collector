@@ -1,44 +1,92 @@
-Clipboard Collector v1.0.0 (Windows x64)
-========================================
-For 64-bit Windows 11. Press F8 to toggle collection.
-
-Features
-- Collect clipboard text when you press Ctrl+C or use a webpage's Copy button.
-- Convert multiline text to one line and append it to the target document.
-- Each copy event creates a separate entry, so repeated text can be collected.
-- Collection runs only when enabled and a supported browser is in the foreground.
-- Select the target application, then press F8 to start or stop. Save the target document manually.
-
-Supported applications and where text goes
-1. Notepad++: Appends one line at a time to the active tab.
-2. Windows Notepad: Appends one line at a time to the active editor. Supports the classic Edit control and the RichEdit control used by Windows 11 Notepad.
-3. Microsoft Excel: Starting at the empty cell selected when you press F8, adds one entry per row down the same column of the active worksheet.
-4. Microsoft Word: Appends one paragraph at a time to the active document.
-5. Hancom Hangul (HWP): Appends one paragraph at a time to an open, previously saved document. Requires a Hangul installation that supports COM automation.
+Clipboard Collector v1.2.3
+=================================================
+For Windows 11 64-bit. Extract the entire ZIP and run Clipboard Collector.exe.
+No Python installation is required. Keep the _internal folder beside the EXE.
 
 Getting started
-1. Extract the ZIP and run Clipboard Collector.exe.
-2. Choose the target application in Clipboard Collector and activate the document or tab to collect into.
-3. Press F8. The window displays ON and the name of the target.
-4. In a supported browser, press Ctrl+C or use the webpage's Copy button.
-5. Check the target document, press F8 to stop, and save it with Ctrl+S.
+1. Open the destination apps and documents/tabs. Choose a primary destination and select any additional destinations.
+2. In Excel, select an empty starting cell first. If several windows are open, activate the intended window most recently.
+   If you are editing a cell, press Esc to cancel or Enter to commit, then select the empty starting cell. If you already clicked Start collection, Collector retries the Excel selection check for up to ten seconds.
+3. Choose the copy source and saving option, then click Start collection.
+4. Check the displayed destination name and copy the text you want to keep.
+5. Click Stop collection. Save in the destination app yourself if automatic saving is off.
 
-Office and HWP integration
-- Clipboard Collector connects to an application that is already running.
-- Excel: Choose an empty starting cell. Collection stops before it would overwrite any existing data. Text starting with characters such as = or + is entered as text.
-- Word: Existing content is preserved and new text is appended after the last paragraph.
-- HWP: Open a single Hangul instance with a previously saved document. Collection stops if several instances are running or if you switch documents. Older versions or some security settings may prevent automation from connecting.
-- Windows Notepad: The collector checks the title and editor area and stops when it detects a tab change.
+Copy source
+- Browsers only (default): collect copies while Chrome, Edge, Firefox, Brave, Vivaldi, or Opera is in the foreground.
+- All apps: also collect copies from other apps. Copies from connected destination windows are excluded.
+  Another window of the same app may be collected. Other tabs inside the destination window are excluded too.
+- Collector connects to one open document per selected app at startup. Destinations are fixed for the session.
+- Destinations are updated in order. A write or save error stops the session. Entries already added remain in place.
+  Check the per-destination counts and error message.
+- Line breaks and tabs become spaces within one entry. Copying identical text again adds another entry.
+- Text entries exceeding 500,000 characters are skipped with a notice.
 
-Safety and verification
-- Collection was verified on Windows 11 in Notepad++, Windows Notepad, Excel, and Word.
-- HWP has yet to be tested. Try it with a test document first.
-- The collector changes the open document in the editor. You decide whether to save it.
-- An application running as administrator may be inaccessible to a collector running with standard permissions.
-- If multiple instances of a target application are open, the collector may select the active document or most recently used window. Check the target shown when collection turns on.
-- Text copied from a webpage may include personal information. Press F8 to stop when you finish.
-- Clipboard Collector has no automatic startup, startup registration, remote communication, or automatic upload.
-- If another application is using F8, use the on-screen toggle.
+Picture collection
+- Select Excel or Word and enable Collect pictures. This option starts off by default.
+- Collector accepts PNG and bitmap data from actions such as Copy image or a screenshot. Use All apps for copies from outside a browser.
+- In Excel, the selected empty cell is the first entry's anchor. Pictures float above cells. The next entry starts in the first row below the picture.
+- In Word, each picture is inserted in its own paragraph at the end of the document.
+- Pictures are inserted at their original size. You can adjust them after insertion.
+- When a copy contains supported image data and text, Collector records one picture. Mixed web formatting and copying image files are outside this feature.
+- Pictures go to Excel and Word. Each picture is limited to 32 MiB of clipboard data and 24 million pixels.
+- Identical pictures received in succession within two seconds are recorded once to reduce duplicates from repeated capture notifications.
 
-Supported browsers
-Chrome, Edge, Firefox, Brave, Vivaldi, and Opera.
+Send collected text
+- Stop collection, select Excel or Word as a destination, then click Send collected text.
+- Copy the desired text from Notepad or another app and paste it into the dialog. Click Send.
+- Collector skips blank lines and sends one entry per line to the selected Excel or Word document.
+  Each batch is limited to 1,000 lines and 500,000 characters. Save when stopping saves when sending finishes.
+
+Destination behavior and protection
+- Notepad++: append to the tab active at start; stop if the tab changes.
+- Windows Notepad: append to the selected window's editor; stop on detected title/tab changes.
+- Excel: one entry per row in the same column, starting at the selected empty cell. Existing cells are not overwritten.
+  Values are entered as literal text to avoid running formulas. Excel limits apply, including 32,767 characters per cell.
+- Word: append one paragraph per entry to the selected document.
+- Hancom Hangul (HWP): append paragraphs to a previously saved document. COM automation support is required.
+  Multiple HWP instances cause collection to stop. HWP has not yet been tested on a real installation.
+- Collector connects to an already open document. It does not launch the destination app. App closure, permission changes,
+  or a changed destination may stop collection.
+
+Word / Excel saving (choose one)
+1. Save after each entry: save the whole document/workbook after adding an entry.
+2. Save when stopping: save when stopped with the button or configured shortcut if this session added entries.
+   Closing Collector normally follows the same rule. Force termination and power loss cannot guarantee saving.
+3. Save manually (default): save in the destination app yourself.
+- Automatic saving requires an existing named, writable file. Collector does not operate Save As dialogs for you.
+- All other edits in that Word document or Excel workbook are saved too, not just collected entries.
+- Automatic saving does not apply to Notepad++, Windows Notepad, or HWP.
+- A detected save failure/cancellation stops collection and shows that text was added but not saved, with the destination name.
+  Added entries are not inserted again. Check the destination and save manually.
+  If saving fails while closing, Collector stays open so you can read the notice.
+
+Global shortcut and button
+- The on-screen button is the primary control. Global shortcut is off by default; F8 is not automatically reserved.
+- Click Change shortcut and press a single key or a Ctrl/Alt/Shift/Win combination. Esc cancels shortcut editing.
+- Enable Use global shortcut to toggle collection with that key. Turning it off releases the key.
+- Your configured key is retained, without automatic substitution or a registration-failure popup.
+  Windows or another app may reserve a key and prevent it from working. You manage conflicts; the button remains available.
+  Configured shortcut shows your choice and does not guarantee successful Windows registration.
+
+Language and help
+- Choose KO or EN under 언어 / Language to immediately switch labels, tooltips, and Collector's own error messages.
+- Hover over buttons and options briefly for a short explanation.
+- Original diagnostics from destination apps, filenames, and app names may remain unchanged.
+- Language, destinations, copy source, saving option, shortcut, and picture preference are remembered.
+  Preview settings: %LOCALAPPDATA%/ClipboardCollector/phase2-preview-settings.json
+
+Notes
+- Developed on Windows 11. Operation on Linux, macOS, or other environments is not guaranteed.
+- Use test documents first and back up originals. See LICENSE.txt for use terms and warranty/liability limitations.
+- All apps mode can record unintended copied information, including personal data or passwords. Stop collection after use.
+- Collector has no startup registration, remote communication, or upload feature. It creates no text history file of its own,
+  but inserted text remains in destination apps and preferences are stored.
+- Elevation differences, app versions, and security settings may restrict access.
+- Slow saves queue entries in order. If 1,000 entries or four pictures are pending, an additional copy stops collection with a notice.
+  Rapid copies, clipboard contention, or delayed rendering may cause read failures and stop collection. Compare the last entry with the source.
+
+Source for personal modifications
+source/ contains Python source and run/build scripts. Regular users do not need it.
+Windows 64-bit Python 3.9 or later: https://www.python.org/downloads/windows/
+Run source: Run.cmd. Office/HWP and picture dependencies: Install_Office_HWP_Support.cmd.
+Build: Build_EXE.cmd (PyInstaller --onedir). Keep the EXE and _internal together.

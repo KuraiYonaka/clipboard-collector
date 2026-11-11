@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Clipboard Collector v0.2.0 — F8, browser-origin clipboard -> open document.
+"""Clipboard Collector — multi-destination clipboard collection.
 Windows x64, Python 3.9+. Notepad++/Notepad stdlib; Office/HWP optional pywin32.
 """
 import ctypes as ct
@@ -33,6 +33,8 @@ class WNDCLASSEXW(ct.Structure):
     ]
 
 # ctypes pointer sizes matter on x64. Explicit declarations protect every HANDLE.
+user32.GetAncestor.argtypes = [wt.HWND, wt.UINT]
+user32.GetAncestor.restype = wt.HWND
 user32.FindWindowW.argtypes = [wt.LPCWSTR, wt.LPCWSTR]
 user32.FindWindowW.restype = wt.HWND
 user32.IsWindow.argtypes = [wt.HWND]
@@ -111,6 +113,10 @@ kernel32.QueryFullProcessImageNameW.argtypes = [wt.HANDLE, wt.DWORD, wt.LPWSTR, 
 kernel32.QueryFullProcessImageNameW.restype = wt.BOOL
 kernel32.GlobalLock.argtypes = [wt.HGLOBAL]
 kernel32.GlobalLock.restype = wt.LPVOID
+kernel32.GlobalSize.argtypes = [wt.HGLOBAL]
+kernel32.GlobalSize.restype = ct.c_size_t
+user32.RegisterClipboardFormatW.argtypes = [wt.LPCWSTR]
+user32.RegisterClipboardFormatW.restype = wt.UINT
 kernel32.GlobalUnlock.argtypes = [wt.HGLOBAL]
 kernel32.GlobalUnlock.restype = wt.BOOL
 kernel32.GetACP.argtypes = []
@@ -122,6 +128,10 @@ WM_DESTROY = 0x0002
 WM_CLOSE = 0x0010
 WM_APP_TOGGLE = 0x8001
 WM_APP_MODE = 0x8002
+WM_APP_EXIT = 0x8003
+WM_APP_SEND = 0x8004
+MAX_IMAGE_BYTES = 32 * 1024 * 1024
+IMAGE_REPEAT_SECONDS = 2.0
 HOTKEY_ID = 9088
 VK_F8 = 0x77
 HWND_MESSAGE = wt.HWND(-3)
@@ -216,7 +226,7 @@ def get_npp_target():
 
 def append_to_scintilla(npp, sci, docptr, text):
     if not user32.IsWindow(npp) or not user32.IsWindow(sci):
-        raise RuntimeError('Notepad++ closed. Press F8 to start again.')
+        raise RuntimeError('Notepad++ closed. Start collection again.')
     if get_scintilla(npp) != sci or send_msg(sci, SCI_GETDOCPOINTER) != docptr:
         raise RuntimeError('The Notepad++ tab changed. Collection stopped.')
     if send_msg(sci, SCI_GETREADONLY):
@@ -285,6 +295,34 @@ def read_clipboard(hwnd):
                 user32.CloseClipboard()
         time.sleep(0.025)
     return None
+
+
+def read_picture(hwnd, sequence, formats):
+    for _ in range(6):
+        if not user32.OpenClipboard(hwnd):
+            time.sleep(0.025)
+            continue
+        try:
+            if user32.GetClipboardSequenceNumber() != sequence:
+                return None, sequence
+            for clipboard_format, image_format in formats:
+                if not user32.IsClipboardFormatAvailable(clipboard_format):
+                    continue
+                handle = user32.GetClipboardData(clipboard_format)
+                size = kernel32.GlobalSize(handle) if handle else 0
+                if size > MAX_IMAGE_BYTES:
+                    raise ValueError('The copied image exceeds 32 MiB.')
+                pointer = kernel32.GlobalLock(handle) if size else None
+                if pointer:
+                    try:
+                        picture = image_format, ct.string_at(pointer, size)
+                        return picture, user32.GetClipboardSequenceNumber()
+                    finally:
+                        kernel32.GlobalUnlock(handle)
+            return None, sequence
+        finally:
+            user32.CloseClipboard()
+    return None, sequence
 
 
 
@@ -393,8 +431,10 @@ def require_com():
 
 
 def acquire_excel():
+    from office_calls import retry_excel
     _, win32 = require_com()
-    try:
+
+    def read_selection():
         app = win32.GetActiveObject('Excel.Application')
         book = app.ActiveWorkbook
         sheet = app.ActiveSheet
@@ -406,15 +446,23 @@ def acquire_excel():
         col, row = int(cell.Column), int(cell.Row)
         # Never overwrite existing content. User first selects an empty cell.
         if cell.Value2 is not None:
-            raise ValueError('Select an empty starting cell in Excel, then press F8.')
+            raise ValueError('Select an empty starting cell in Excel, then start collection.')
         return {'kind':'excel','app':app,'book':book,'sheet':sheet,'col':col,'next_row':row,
                 'book_name':str(book.FullName),'sheet_name':str(sheet.Name),
                 'label':f'{book.Name} / {sheet.Name} / {cell.Address}'}
+    try:
+        return retry_excel(read_selection, timeout=10.0)
     except Exception as exc:
         raise RuntimeError('Select an empty starting cell in the open Excel workbook. (' + str(exc) + ')') from exc
 
 
 def append_to_excel(target, text):
+    from office_calls import retry_excel
+
+    retry_excel(lambda: write_excel_cell(target, text))
+
+
+def write_excel_cell(target, text):
     book, sheet = target['book'], target['sheet']
     if str(book.FullName) != target['book_name'] or str(sheet.Name) != target['sheet_name']:
         raise RuntimeError('The target Excel workbook changed.')
@@ -548,229 +596,451 @@ def normalize_line(value):
     return line
 
 
-class Collector:
-    def __init__(self, events):
-        self.events = events
-        self.hwnd = None
-        self.enabled = False
-        self.count = 0
-        self.mode = 0  # original behavior: Notepad++
-        self.target = None
-        self.last_sequence = 0
-        self._callback = WNDPROC(self._wndproc)
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
+def target_window(target):
+    kind = target['kind']
+    if kind == 'npp':
+        return target['npp']
+    if kind == 'notepad':
+        return target['window']
+    if kind == 'excel':
+        return int(target['app'].ActiveWindow.Hwnd)
+    if kind == 'word':
+        return int(target['doc'].ActiveWindow.Hwnd)
+    return int(target['hwp'].XHwpWindows.Item(0).WindowHandle)
 
-    def _emit(self, kind, data=''):
+
+def save_target(target):
+    from strings import TEXT
+    kind = target['kind']
+    obj = target['book'] if kind == 'excel' else target['doc']
+    expected = target['book_name'] if kind == 'excel' else target['path']
+    def save():
+        if not str(obj.Path or ''):
+            raise RuntimeError(TEXT['save_first'][1])
+        if str(obj.FullName) != expected or obj.ReadOnly:
+            raise RuntimeError(TEXT['save_changed'][1])
+        obj.Save()
+
+    if kind == 'excel':
+        from office_calls import retry_excel
+        retry_excel(save)
+        saved = retry_excel(lambda: obj.Saved)
+    else:
+        save()
+        saved = obj.Saved
+    if not saved:
+        raise RuntimeError(TEXT['save_cancelled'][1])
+
+
+def prepare_targets(settings, transfer=False):
+    from strings import TEXT
+    from office_calls import retry_excel
+
+    targets = []
+    modes = [settings['mode'], *settings.get('extra_modes', [])]
+    for mode in dict.fromkeys(modes):
+        if transfer and mode not in (2, 3):
+            continue
+        try:
+            target = acquire_target(mode)
+            target['entries'] = 0
+            target['saving'] = settings['save'] if mode in (2, 3) else 'manual'
+            if target['saving'] != 'manual':
+                obj = target['book'] if mode == 2 else target['doc']
+                def writable_file():
+                    return bool(str(obj.Path or '')) and not obj.ReadOnly
+
+                writable = retry_excel(writable_file) if mode == 2 else writable_file()
+                if not writable:
+                    raise RuntimeError(TEXT['save_first'][1])
+            if not transfer and settings['source'] == 'all':
+                handle = retry_excel(lambda: target_window(target)) if mode == 2 else target_window(target)
+                root = user32.GetAncestor(handle, 2) if handle else 0
+                if not root:
+                    raise RuntimeError('The destination window could not be identified.')
+                target['window_handle'] = root
+        except Exception as exc:
+            raise RuntimeError(f'{MODES[mode]}: {exc}') from exc
+        targets.append(target)
+    if not targets:
+        raise RuntimeError('Select Excel or Word before sending text.')
+    return targets
+
+
+class SaveFailure(RuntimeError):
+    pass
+
+
+def write_entry(targets, kind, value):
+    if kind == 'image':
+        from pictures import OFFICE_KINDS, insert_picture
+
+    for target in targets:
+        if kind == 'image' and target['kind'] not in OFFICE_KINDS:
+            continue
+        try:
+            if kind == 'image':
+                insert_picture(target, value)
+            else:
+                append_to_target(target, value)
+            target['entries'] += 1
+        except Exception as exc:
+            raise RuntimeError(f"{target['label']}: {exc}") from exc
+        if target['saving'] == 'each':
+            try:
+                save_target(target)
+            except Exception as exc:
+                raise SaveFailure(f"{target['label']}: Text or image was added but saving failed. {exc}") from exc
+
+
+def save_at_end(targets):
+    errors = []
+    for target in targets:
+        if target['saving'] == 'stop' and target['entries']:
+            try:
+                save_target(target)
+            except Exception as exc:
+                errors.append(f"{target['label']}: Text or image was added but saving failed. {exc}")
+    return errors
+
+
+def entry_totals(targets):
+    return ' · '.join(f"{target['label']} ({target['entries']})" for target in targets)
+
+
+class Collector:
+    """Capture clipboard promptly; serialize destination COM work on one STA."""
+    def __init__(self, events, settings):
+        self.events = events
+        self.settings = settings
+        self.hwnd = None
+        self.collecting = False
+        self.transitioning = False
+        self.close_requested = False
+        self.session = 0
+        self.excluded_windows = set()
+        self.picture_formats = [(value, kind) for value, kind in
+                                ((user32.RegisterClipboardFormatW('PNG'), 'PNG'), (17, 'DIB'), (8, 'DIB'))
+                                if value]
+        self.picture_slots = threading.BoundedSemaphore(4)
+        self.transfers = queue.Queue()
+        self.last_sequence = 0
+        self.jobs = queue.Queue()
+        self.controls = queue.Queue()
+        self.callback = WNDPROC(self._wndproc)
+        self.worker = threading.Thread(target=self._work, daemon=True)
+        self.listener = threading.Thread(target=self._run, daemon=True)
+        self.worker.start()
+        self.listener.start()
+
+    def emit(self, kind, data):
         self.events.put((kind, data))
 
+    def notice(self, key, **values):
+        self.emit('notice', (key, values))
+
     def _run(self):
-        initialized_com = False
         try:
-            # COM calls remain on the one STA message-loop thread.
-            try:
-                import pythoncom
-                pythoncom.CoInitialize()
-                initialized_com = True
-            except ImportError:
-                pass  # Notepad++ and Notepad do not need COM
-            instance = kernel32.GetModuleHandleW(None)
-            class_name = 'NppClipboardCollector_Window_2'
             klass = WNDCLASSEXW()
-            klass.cbSize = ct.sizeof(WNDCLASSEXW)
-            klass.hInstance = instance
-            klass.lpfnWndProc = self._callback
-            klass.lpszClassName = class_name
+            klass.cbSize = ct.sizeof(klass)
+            klass.hInstance = kernel32.GetModuleHandleW(None)
+            klass.lpfnWndProc = self.callback
+            klass.lpszClassName = 'ClipboardCollectorPreview_' + str(os.getpid())
             if not user32.RegisterClassExW(ct.byref(klass)):
                 raise RuntimeError('Could not register the Windows message window.')
-            self.hwnd = user32.CreateWindowExW(0, class_name, 'NppClipboardCollector', 0, 0, 0, 0, 0, HWND_MESSAGE, None, instance, None)
+            self.hwnd = user32.CreateWindowExW(0, klass.lpszClassName, 'ClipboardCollector', 0,
+                                              0, 0, 0, 0, HWND_MESSAGE, None, klass.hInstance, None)
             if not self.hwnd:
                 raise RuntimeError('Could not create the Windows message window.')
-            clip_ok = user32.AddClipboardFormatListener(self.hwnd)
-            hotkey_ok = user32.RegisterHotKey(self.hwnd, HOTKEY_ID, 0, VK_F8)
-            if not clip_ok:
+            if not user32.AddClipboardFormatListener(self.hwnd):
                 raise RuntimeError('Could not register for clipboard updates.')
-            if not hotkey_ok:
-                self._emit('notice', 'Another application is using F8. Use the on-screen button to toggle collection.')
-            else:
-                self._emit('notice', 'Ready. Select a target application, then press F8.')
-            self._emit('ready', hotkey_ok)
+            self.emit('ready', None)
+            if self.close_requested:
+                user32.PostMessageW(self.hwnd, WM_CLOSE, 0, 0)
             message = wt.MSG()
             while user32.GetMessageW(ct.byref(message), None, 0, 0) > 0:
                 user32.TranslateMessage(ct.byref(message))
                 user32.DispatchMessageW(ct.byref(message))
-            if hotkey_ok:
-                user32.UnregisterHotKey(self.hwnd, HOTKEY_ID)
-            user32.RemoveClipboardFormatListener(self.hwnd)
         except Exception as exc:
-            self._emit('error', str(exc))
+            self.notice('failed', error=str(exc))
+            self.emit('state', (False, ''))
+            self.jobs.put(('close', self.session, None))
         finally:
-            if initialized_com:
-                pythoncom.CoUninitialize()
+            if self.hwnd:
+                user32.UnregisterHotKey(self.hwnd, HOTKEY_ID)
+                user32.RemoveClipboardFormatListener(self.hwnd)
 
     def _toggle(self):
-        if self.enabled:
-            self.enabled = False
-            self.target = None
-            self._emit('state', (False, 'Idle'))
-            self._emit('notice', 'Collection stopped.')
+        if self.transitioning or self.close_requested:
             return
-        try:
-            self.target = acquire_target(self.mode)
-            self.last_sequence = user32.GetClipboardSequenceNumber()
-            self.count = 0
-            self.enabled = True
-            self._emit('state', (True, self.target['label']))
-            self._emit('count', 0)
-            self._emit('notice', 'Collection is on. Copy text in your browser to add one line at a time.')
-        except Exception as exc:
-            self.enabled = False
-            self.target = None
-            self._emit('state', (False, 'Idle'))
-            self._emit('notice', str(exc))
+        self.transitioning = True
+        self.emit('busy', None)
+        if self.collecting:
+            self.collecting = False
+            self.jobs.put(('stop', self.session, None))
+        else:
+            self.session += 1
+            self.capture_settings = dict(self.settings)
+            if 2 in (self.settings['mode'], *self.settings.get('extra_modes', [])):
+                self.notice('excel_starting')
+            self.jobs.put(('start', self.session, self.capture_settings))
 
     def _copy_event(self):
-        if not self.enabled:
+        if not self.collecting:
             return
         seq = user32.GetClipboardSequenceNumber()
         if not seq or seq == self.last_sequence:
             return
         self.last_sequence = seq
-        if not browser_is_foreground():
+        foreground = user32.GetForegroundWindow()
+        if self.capture_settings['source'] == 'browser':
+            if not browser_is_foreground():
+                return
+        elif foreground and user32.GetAncestor(foreground, 2) in self.excluded_windows:
+            return
+        if self.jobs.qsize() >= 1000:
+            self.capture_error('overflow')
+            return
+        if self.capture_settings.get('images') and any(
+            mode in (2, 3) for mode in [self.capture_settings['mode'], *self.capture_settings.get('extra_modes', [])]
+        ) and any(user32.IsClipboardFormatAvailable(value) for value, _ in self.picture_formats):
+            if not self.picture_slots.acquire(blocking=False):
+                self.capture_error('picture_queue_full')
+                return
+            queued = False
+            try:
+                picture, actual_sequence = read_picture(self.hwnd, seq, self.picture_formats)
+                if picture is None:
+                    self.capture_error('capture_failed')
+                    return
+                self.last_sequence = actual_sequence
+                self.jobs.put(('copy', self.session, ('image', picture, time.monotonic())))
+                queued = True
+            finally:
+                if not queued:
+                    self.picture_slots.release()
+            return
+        if not user32.IsClipboardFormatAvailable(CF_UNICODETEXT):
             return
         value = read_clipboard(self.hwnd)
-        if value is None:
+        if value is None or user32.GetClipboardSequenceNumber() != seq:
+            self.capture_error('capture_failed')
             return
         line = normalize_line(value)
         if not line:
             return
         if len(line) > 500_000:
-            self._emit('notice', 'Skipped copied text longer than 500,000 characters.')
+            self.notice('too_long')
             return
-        try:
-            append_to_target(self.target, line)
-            self.count += 1
-            self._emit('count', self.count)
-            self._emit('notice', f'Entries added: {self.count}. Save in the editor with Ctrl+S.')
-        except Exception as exc:
-            self.enabled = False
-            self.target = None
-            self._emit('state', (False, 'Idle'))
-            self._emit('notice', 'Collection stopped: ' + str(exc))
+        self.jobs.put(('copy', self.session, ('text', line)))
+
+    def capture_error(self, reason):
+        self.collecting = False
+        self.transitioning = True
+        self.jobs.put(('capture_error', self.session, reason))
 
     def _wndproc(self, hwnd, msg, wparam, lparam):
         try:
-            if msg == WM_HOTKEY and wparam == HOTKEY_ID:
-                self._toggle()
-                return 0
-            if msg == WM_APP_TOGGLE:
+            if msg == WM_HOTKEY and wparam == HOTKEY_ID or msg == WM_APP_TOGGLE:
                 self._toggle()
                 return 0
             if msg == WM_APP_MODE:
-                if not self.enabled and 0 <= int(wparam) < len(MODES):
-                    self.mode = int(wparam)
-                    self._emit('notice', f'Target application: {MODES[self.mode]}. Press F8 to start.')
+                while not self.controls.empty():
+                    settings = self.controls.get_nowait()
+                    user32.UnregisterHotKey(hwnd, HOTKEY_ID)
+                    if settings['hotkey_enabled']:
+                        user32.RegisterHotKey(hwnd, HOTKEY_ID, settings['hotkey_mods'] | 0x4000, settings['hotkey_vk'])
                 return 0
             if msg == WM_CLIPBOARDUPDATE:
                 self._copy_event()
                 return 0
             if msg == WM_CLOSE:
+                self.close_requested = True
+                self.transitioning = True
+                self.collecting = False
+                self.jobs.put(('close', self.session, None))
+                return 0
+            if msg == WM_APP_SEND:
+                settings, lines = self.transfers.get_nowait()
+                if self.collecting or self.transitioning or self.close_requested:
+                    self.emit('transfer_rejected', None)
+                    return 0
+                self.transitioning = True
+                self.session += 1
+                self.emit('busy', None)
+                self.jobs.put(('transfer', self.session, (settings, lines)))
+                return 0
+            if msg == WM_APP_EXIT:
                 user32.DestroyWindow(hwnd)
                 return 0
             if msg == WM_DESTROY:
                 user32.PostQuitMessage(0)
                 return 0
         except Exception as exc:
-            self.enabled = False
-            self.target = None
-            self._emit('state', (False, 'Idle'))
-            self._emit('notice', 'Error: ' + str(exc))
+            self.capture_error(str(exc))
         return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
 
-    def toggle_from_ui(self):
+    def _work(self):
+        try:
+            import pythoncom
+            pythoncom.CoInitialize()
+        except ImportError:
+            pythoncom = None
+        targets = []
+        current = 0
+        count = 0
+        unsaved_failure = False
+        last_picture = None
+        try:
+            while True:
+                try:
+                    action, session, data = self.jobs.get(timeout=0.05)
+                except queue.Empty:
+                    if pythoncom:
+                        pythoncom.PumpWaitingMessages()
+                    continue
+                image_job = action == 'copy' and data[0] == 'image'
+                try:
+                    if action in ('start', 'transfer'):
+                        current, count = session, 0
+                        unsaved_failure = False
+                        last_picture = None
+                        self.emit('count', 0)
+                        self.emit('totals', '')
+                        options, lines = data if action == 'transfer' else (data, [])
+                        targets = prepare_targets(options, transfer=action == 'transfer')
+                        self.emit('totals', entry_totals(targets))
+                        if action == 'start':
+                            self.excluded_windows = {t['window_handle'] for t in targets if 'window_handle' in t}
+                            self.last_sequence = user32.GetClipboardSequenceNumber()
+                            self.collecting = not self.close_requested
+                            self.emit('state', (True, ', '.join(t['label'] for t in targets)))
+                            self.notice('started')
+                            self.transitioning = False
+                        else:
+                            for line in lines:
+                                before = sum(t['entries'] for t in targets)
+                                try:
+                                    write_entry(targets, 'text', line)
+                                finally:
+                                    count += sum(t['entries'] for t in targets) > before
+                            errors = save_at_end(targets)
+                            self.emit('count', count)
+                            self.emit('totals', entry_totals(targets))
+                            targets = []
+                            if errors:
+                                unsaved_failure = True
+                                self.notice('failed', error='\n'.join(errors))
+                            else:
+                                self.notice('transfer_done', count=count)
+                            self.emit('state', (False, ''))
+                            self.transitioning = False
+                    elif action == 'copy' and session == current and targets:
+                        if image_job:
+                            from pictures import picture_signature
+                            captured_at = data[2]
+                            signature = picture_signature(data[1])
+                            if (last_picture is not None and signature == last_picture[0]
+                                    and captured_at - last_picture[1] <= IMAGE_REPEAT_SECONDS):
+                                continue
+                            last_picture = signature, captured_at
+                        else:
+                            last_picture = None
+                        before = sum(t['entries'] for t in targets)
+                        try:
+                            write_entry(targets, data[0], data[1])
+                        finally:
+                            count += sum(t['entries'] for t in targets) > before
+                            self.emit('count', count)
+                            self.emit('totals', entry_totals(targets))
+                        self.notice('written', count=count)
+                    elif action in ('stop', 'close', 'capture_error'):
+                        had_targets = bool(targets)
+                        saved_names = ', '.join(
+                            t['label'] for t in targets if t['saving'] == 'stop' and t['entries']
+                        )
+                        errors = save_at_end(targets)
+                        targets = []
+                        if errors:
+                            unsaved_failure = True
+                        if action == 'capture_error' and had_targets:
+                            from strings import TEXT
+                            if errors:
+                                self.notice('failed', error='\n'.join(errors))
+                            elif data in TEXT:
+                                self.notice(data)
+                            else:
+                                self.notice('failed', error=data)
+                        elif errors:
+                            self.notice('failed', error='\n'.join(errors))
+                        elif saved_names:
+                            self.notice('saved', name=saved_names)
+                        elif had_targets:
+                            self.notice('stopped')
+                        if action == 'close':
+                            if not unsaved_failure:
+                                break
+                            unsaved_failure = False
+                            self.close_requested = False
+                            self.emit('close_failed', None)
+                        self.emit('state', (False, ''))
+                        self.transitioning = False
+                except Exception as exc:
+                    self.collecting = False
+                    self.transitioning = True
+                    errors = [str(exc), *save_at_end(targets)]
+                    unsaved_failure = len(errors) > 1 or isinstance(exc, SaveFailure)
+                    self.emit('count', count)
+                    self.emit('totals', entry_totals(targets))
+                    targets = []
+                    self.notice('failed', error='\n'.join(errors))
+                    self.emit('state', (False, ''))
+                    self.transitioning = False
+                finally:
+                    if image_job:
+                        self.picture_slots.release()
+                if pythoncom:
+                    pythoncom.PumpWaitingMessages()
+        finally:
+            targets.clear()
+            if pythoncom:
+                pythoncom.CoUninitialize()
+            if self.hwnd:
+                user32.PostMessageW(self.hwnd, WM_APP_EXIT, 0, 0)
+            self.emit('closed', None)
+
+    def send_text(self, settings, lines):
+        self.transfers.put((dict(settings), lines))
+        user32.PostMessageW(self.hwnd, WM_APP_SEND, 0, 0)
+
+
+    def toggle_from_ui(self, settings):
         if self.hwnd:
             user32.PostMessageW(self.hwnd, WM_APP_TOGGLE, 0, 0)
 
-    def set_mode_from_ui(self, mode):
+    def configure_hotkey(self, settings):
+        self.controls.put(dict(settings))
         if self.hwnd:
-            user32.PostMessageW(self.hwnd, WM_APP_MODE, mode, 0)
+            user32.PostMessageW(self.hwnd, WM_APP_MODE, 0, 0)
 
     def close(self):
+        self.close_requested = True
         if self.hwnd:
             user32.PostMessageW(self.hwnd, WM_CLOSE, 0, 0)
 
 
 def main():
+    from interface import Application, load_settings
     if struct.calcsize('P') != 8:
-        messagebox.showerror('Environment error', 'Run this program with 64-bit Python.')
+        messagebox.showerror('환경 오류 / Environment error', '64-bit Python is required. / 64비트 Python이 필요합니다.')
         return
     root = tk.Tk()
-    root.title('Clipboard Collector v1.0.0')
-    root.geometry('570x350')
-    root.minsize(490, 335)
-    root.configure(bg='#151923')
-    fg, muted = '#f0f3fa', '#a8b1c5'
-    frame = tk.Frame(root, bg='#151923', padx=20, pady=18)
-    frame.pack(fill='both', expand=True)
-    tk.Label(frame, text='Clipboard Collector', bg='#151923', fg=fg,
-             font=('Malgun Gothic', 17, 'bold')).pack(anchor='w')
-    tk.Label(frame, text='Copy from a browser into an open document, one line at a time', bg='#151923', fg=muted,
-             font=('Malgun Gothic', 10)).pack(anchor='w', pady=(4, 12))
-    tk.Label(frame, text='Target application', bg='#151923', fg=fg,
-             font=('Malgun Gothic', 10, 'bold')).pack(anchor='w')
-    mode_var = tk.StringVar(value=MODES[0])
-    style = ttk.Style()
-    style.theme_use('clam')
-    style.configure('Collector.TCombobox', font=('Malgun Gothic', 10))
-    combo = ttk.Combobox(frame, textvariable=mode_var, values=MODES, state='readonly', style='Collector.TCombobox')
-    combo.pack(fill='x', pady=(4, 10))
-    state_var = tk.StringVar(value='● OFF  |  Press F8 to start')
-    state_label = tk.Label(frame, textvariable=state_var, bg='#151923', fg='#ee9e9e',
-                           font=('Malgun Gothic', 14, 'bold'))
-    state_label.pack(anchor='w')
-    target_var = tk.StringVar(value='Target: None')
-    tk.Label(frame, textvariable=target_var, bg='#151923', fg=muted, anchor='w',
-             justify='left', wraplength=510, font=('Malgun Gothic', 9)).pack(fill='x', pady=(7, 6))
-    count_var = tk.StringVar(value='Entries added: 0')
-    tk.Label(frame, textvariable=count_var, bg='#151923', fg=fg,
-             font=('Malgun Gothic', 10)).pack(anchor='w', pady=(0, 6))
-    notice_var = tk.StringVar(value='Starting...')
-    tk.Label(frame, textvariable=notice_var, bg='#151923', fg=muted,
-             wraplength=510, justify='left', anchor='w', font=('Malgun Gothic', 9)).pack(fill='x')
     events = queue.Queue()
-    collector = Collector(events)
-    def on_mode(_=None):
-        collector.set_mode_from_ui(MODES.index(mode_var.get()))
-    combo.bind('<<ComboboxSelected>>', on_mode)
-    btn = tk.Button(frame, text='F8  |  Toggle collection', command=collector.toggle_from_ui,
-                    bg='#315d91', fg='white', activebackground='#447aba', activeforeground='white',
-                    font=('Malgun Gothic', 11, 'bold'), relief='flat', pady=7, cursor='hand2')
-    btn.pack(fill='x', side='bottom')
-
-    def poll():
-        try:
-            while True:
-                kind, data = events.get_nowait()
-                if kind == 'state':
-                    on, title = data
-                    state_var.set('● ON  |  Press F8 to stop' if on else '● OFF  |  Press F8 to start')
-                    state_label.config(fg='#81e4a5' if on else '#ee9e9e')
-                    target_var.set('Target: ' + title if on else 'Target: None')
-                    combo.configure(state='disabled' if on else 'readonly')
-                elif kind == 'count':
-                    count_var.set(f'Entries added: {data}')
-                elif kind in ('notice', 'error'):
-                    notice_var.set(data)
-        except queue.Empty:
-            pass
-        root.after(100, poll)
-    root.after(100, poll)
-
-    def on_close():
-        collector.close()
-        root.destroy()
-    root.protocol('WM_DELETE_WINDOW', on_close)
+    settings = load_settings()
+    collector = Collector(events, settings)
+    Application(root, collector, events, settings)
     root.mainloop()
+
 
 if __name__ == '__main__':
     main()
