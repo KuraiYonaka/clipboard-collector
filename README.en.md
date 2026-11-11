@@ -11,14 +11,22 @@ Collect copied text and pictures in open documents on Windows. Collect from brow
 3. Open your documents and select the destinations. In Excel, click an empty starting cell once. Finish any active cell edit first.
 4. Start collection and copy the items you want to keep. Turn on **Collect pictures** to insert images in Excel or Word.
 
+## Features in 1.2.3
+
+- **Choose where to collect from** — Use **Browsers only** for web research or **All apps** to also collect copies from screen capture tools and other apps.
+- **Insert pictures in Excel and Word** — Insert copied images and screenshots at their original size. In Excel, the first picture is anchored at the selected empty cell, and the next entry starts in the first row below it.
+- **Write to several documents** — Choose **Additional destinations** to send the same copied text to several open documents. Pictures go to Excel and Word.
+- **Send collected text** — Paste text gathered in Notepad or another editor to send it to Excel or Word one line at a time. Blank lines are skipped.
+- **Set saving and controls** — Choose to save Excel and Word after each entry, when stopping collection, or manually. Switch between Korean and English in the app and set an optional start/stop shortcut.
+
+## Supported destinations
+
 | Destination | Text placement | Pictures |
 | --- | --- | --- |
 | Notepad++ and Windows Notepad | End of the active document | — |
 | Excel | Down the same column from the selected empty cell | Inserted at original size |
 | Word | End of the document | Inserted at original size |
 | Hancom Hangul (HWP) | End of a previously saved, open document | — |
-
-Excel and Word support saving after each entry or when stopping collection. Use **Send collected text** to send existing text to Excel or Word one line at a time. The app supports Korean and English and an optional global shortcut.
 
 Developed on Windows 11. Picture insertion and saving were tested in Excel and Word. HWP text collection has not been tested in Hancom Hangul.
 
